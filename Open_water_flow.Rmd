@@ -1,0 +1,78 @@
+---
+title: "Open water flow"
+output: html_notebook
+author: G. Bier
+---
+
+# Introduction
+
+This document is designed to give a short introduction in some of the hydraulic properties of channel flow and some basic concept to calculate water levels in rivers, canals, channels etc..
+It is NOT intendede to be a crash course in hydraulics.
+
+# Equations for open water flow
+
+The flow in rivers as for example the Regge is most often described by the so called St-Venant equations, expressing respectively the mass and the momentum balance (only in *x*-direction):
+
+$$
+\begin{align*}
+\frac{\partial A}{\partial t} + \frac{\partial Q}{\partial x} &= I &\text{: mass balance}\\
+\frac{\partial Q}{\partial t} + \frac{\partial Q\,u}{\partial x} 
+            &= g\;A\;\Big( S_o - S_f - \frac{\partial a}{\partial x}\Big) &\text{: momentum balance}
+\end{align*}
+$$
+
+As we are here less interested in highly dynamic open water calculations, a simplification of the second equation above will be used. This simplification starts from the observation that in many situations (certainly lowland situations) the first two terms in the momentum part of the St-Venant equations are much smaller than the terms on the right hand side.
+
+$$
+\frac{\partial Q}{\partial t} + \frac{\partial Q\,u}{\partial x} = 
+        g\;A\;\Big( S_o - S_f - \frac{\partial a}{\partial x}\Big)\\
+\Downarrow \\
+0 = g\;A\;\Big( S_o - S_f - \frac{\partial a}{\partial x}\Big)\\
+\Downarrow \\
+0 =  S_o - S_f - \frac{\partial a}{\partial x}
+$$
+
+gb
+
+Volgens Paul "openwater.pdf" van 2007.
+
+Stationary formulas, including the side inflow
+
+$$
+ \frac{\partial Q}{\partial s}=I \\
+ \frac{\partial Qu}{\partial s}=g \, A \, \{ S_o+S_f+S_p \}
+$$
+
+Rewriting the second equation
+
+$$
+u = Q/A ,\,\; \partial A = b\, \partial a ??\\
+\frac{\partial Qu}{\partial s}= \frac{\partial}{\partial s}\left ( \frac{Q^2}{A}\right) = \\
+2\frac{Q}{A}\frac{\partial Q}{\partial s}-\frac{Q^2}{A^2}\frac{\partial A}{\partial s} = \\
+2uI - \frac{Q^2b}{A^2}\frac{\partial a}{\partial s}
+$$
+Puting the last derived (rewritten) equation into the prevous formula block:
+
+$$
+\frac{\partial Qu}{\partial s}=g \, A \, \{ S_o+S_f+S_p \} \\
+2uI - \frac{Q^2b}{A^2}\frac{\partial a}{\partial s} = g \, A \, \{ S_o+S_f+ \frac{\partial a}{\partial s} \} \\
+\left ( 1- \frac{Q^2b}{gA^3}\right ) \frac{\partial a}{\partial s} = S_o - S_f - \frac{2uI}{gA} \\
+\Leftrightarrow \frac{\partial a}{\partial s} = \frac{S_o - S_f -S_i}{1-Fr^2}
+$$
+
+
+The meaning of the terms in these equations will be explained when they first appear in this document.
+
+In these exercises situations will be studied where
+
+-   the flow in the Hooge Raam can be considered to be *stationary* (so the time derivatives in the equations above disappear)
+-   there is a weir at the downstream end of the river
+
+Situations of this type are often called **backwater curves**.
+
+This type of open water model that will be developed in this document will be coupled with a groundwater model. So at some places typical groundwater terms and dimensions may occur.
+
+The open water has its own standard units:
+
+-   length unit = $\bf{m}$ meter
+-   time unit = $\bf{s}$ second
