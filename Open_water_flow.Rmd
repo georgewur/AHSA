@@ -1,6 +1,8 @@
 ---
 title: "Open water flow"
-output: html_notebook
+output: 
+  html_notebook:
+   css:  want_n.css
 author: G. Bier
 ---
 
@@ -51,7 +53,7 @@ u = Q/A ,\,\; \partial A = b\, \partial a ??\\
 2\frac{Q}{A}\frac{\partial Q}{\partial s}-\frac{Q^2}{A^2}\frac{\partial A}{\partial s} = \\
 2uI - \frac{Q^2b}{A^2}\frac{\partial a}{\partial s}
 $$
-Puting the last derived (rewritten) equation into the prevous formula block:
+Putting the last derived (rewritten) equation into the previous formula block:
 
 $$
 \frac{\partial Qu}{\partial s}=g \, A \, \{ S_o+S_f+S_p \} \\
@@ -76,3 +78,53 @@ The open water has its own standard units:
 
 -   length unit = $\bf{m}$ meter
 -   time unit = $\bf{s}$ second
+
+## Geometry of the open water domain
+
+In contrast to groundwater flow, open water flow is limmitid to the open water course itself. This could be simulated in 2D, in de cross sectional and depth domain, or more frequently use averged depth. As can be seen in the abovementionded equations.
+
+The cross sectional geometry of the open water course is of major importance since the hydraulic properties of A, P and R change w.r.t. the water level. Therefor extra intention is paid on this aspect. 
+Nowaday many "parenthesis" shaped profiles are used to accommodate base flow and highly discharge events without drastically changing open water levels.
+Here we will consider, for simplicity, only trapezoid profiles.
+Although simplified, these profiles have non-linear behaviour regarding A,P and R.
+
+Below an illustration of such a trapezoid profile:
+
+
+$A$ is the wetted Area of the profile, $P$ being the wettted perimeter (the lenght of the profile which is wet due to the water level) and $R$, being the hydraulic radius and determined by: $R=\frac{A}{P}$.
+
+<div class="question">
+Suppose this profile has a side slope `m` of 1.5, what are the A,P and R relations as a function of the water level.
+</div>
+
+## Wetted area
+
+One of the important cross section functions is the wetted area. In the St-Venant equation denoted by $A$. For a trapezoidal cross section this can be easily calculated by the following function:
+
+```{r, eval=TRUE}
+ow.b = 5
+ow.m = 1.5
+
+
+ow.A = function(a)
+{
+  return(ow.b*a+ow.m*a^2)
+}
+
+a = seq(0,5, by =0.1)
+
+plot(a,HR.A(a))
+grid()
+
+
+ow.P = function(a)
+{
+  return(ow.b +2*sqrt(ow.m^2*a+a^2))
+}
+
+plot(a,ow.P(a))
+
+plot(a,ow.A(a)/ow.P(a))
+
+```
+
