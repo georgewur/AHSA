@@ -117,8 +117,8 @@ ow.b = 1 #just a guess
 ow.m = 1 #just a guess
 
 ##Upstream Discharge 
-Qup = 1.25 #m3/s
-
+#Qup = 1.25 #m3/s
+Qup = 1.25 + 1.60125 #m3/s with side inflow based on the catchment area of the Regge and a normative discharge of 7 mm/d
 ow.A = function(a)
 {
   return(ow.b*a+ow.m*2*a^2/2)
@@ -126,7 +126,7 @@ ow.A = function(a)
 
 a = seq(0,5, by =0.1)
 
-plot(a,ow.A(a))
+plot(a,ow.A(a),main = "Wetted area")
 grid()
 
 
@@ -135,9 +135,11 @@ ow.P = function(a)
   return(ow.b + a * 2 *sqrt(1 + ow.m^2))
 }
 
-plot(a,ow.P(a))
+plot(a,ow.P(a),main = "Wetted perimeter")
+grid()
 
-plot(a,ow.A(a)/ow.P(a))
+plot(a,ow.A(a)/ow.P(a),main = "Hydraulic radius")
+grid()
 
 ow.R = function(a)
 {
@@ -367,44 +369,99 @@ The local flow velocity (at $s[i]$) can be calculated as: $\frac{Q_s[i]}{A_s[i]}
 
 The side inflow can be calculated as a flux coming from local water courses like ditches. The normative discharge for grassland is 7-10 mm/d and for arable land 7-10 mm/d (ctt vademecum 1988). 
 
-When the size "watershed" of the river is known, the side inflow can be calculated as: $I = \frac{Q}{L_{river}}$ with $Q$ being the total discharge entering the river from the watershed aan $L$ distributed over the length of the river.
+When the catchment area of the river is known, the side inflow can be calculated as: $I = \frac{Q_{catchment}}{L_{river}}$ with $Q$ being the total discharge entering the river from the catchment area over the length of the river $L_{river}$.
 
+<div class="question">
+Calculate the side inflow for the river Regge assuming a  catchment area of (5.8/29*9882ha; krw midden-regge) and a length of 5800 m.
+</div>
+
+<div class="answer">
+Assume a normative discharge of 7 mm/d.  
+```{r}
+#The catchment area is:
+A_catchm = 5.8/29*9882 *10000
+# The discharge from side inflow:
+Q_Si = A_catchm * 0.007/86400  # m3/s.
+# The side inflow:
+I = Q_Si/ow.L
+
+```
+
+</div>
+
+To calculate the slope of the river with the side inflow, the following equation can be used:
+$S_i = \frac{2uI}{gA}$. 
+This means that besides $I$, the flow velocity $u$ and $A$ at each location along the river $s[i]$ is needed. The $u$ can be calculated as $u = \frac{Q}{A}$. The wetted area $A$ can be calculated as $A = b\,a + m\,a^2$, with $a$ at the current location.  
+The local discharge is calculated starting at the weir and moving upstream. The local discharge is calculated as $Q_s[i] = Q_s[i-1] + I\,ds$. The local water depth is calculated as $a_s[i] = a_s[i-1] + \frac{S_0 - S_f - S_i}{1-Fr^2}\,ds$.
+
+
+
+<div class="question">
+Calculate the backwater curve now including the side inflow.
+Simply copy the previous chunk and add the side inflow to the calculation of the water level.
+</div>
+
+<div class="answer"> 
 ```{r}
 ####same chunk as above but now side inflow Si is added
-
+# Discharge at starting point of calcualtion, so at the weir
+Qweir = Qup + I*ow.L
+# setup the Qs and a.si array with zeros
+Qs = rep(0,times = length(a.bw))
+a.si = rep(0,times = length(a.bw))
 # first downstream prescribed water level
-a.bw[1] = hweir(Qup)
-a.bwf0 = a.bw
-# Discharge rate upstream Qup
-for (i in 1:(length(a.bw)-1) )
+a.si[1] = hweir(Qweir)
+##COMPARING a.bw and a.si with both Qup = 1.25+1.60125
+a.si[1] = hweir(Qup)
+a.sif0 = a.si
+
+#first Qs = Qweir
+Qs[1] = Qweir
+#loop for calculating the water levels
+for (i in 2:(length(a.bw)-1) )
 {
-S.f = n^2*abs(Qup)^2/(ow.A(a.bw[i])^2*ow.R(a.bw[i])^(4/3))
-Fr = sqrt(Qup^2*ow.B(a.bw[i])/(9.8*ow.A(a.bw[i])^3))
-dads = (S0 - S.f)/(1-Fr^2)
-dadsf0 = S0 - S.f
+#calculate the Q, u and Si at the current location
+Qs[i] = Qs[i-1] - I*-ds  ## ds is negative!! and I*ds should be subtracted for the Qs upstream
+u = Qs[i]/ow.A(a.si[i-1])
+S.i = 2*u*I/(9.8*ow.A(a.si[i-1]))
+S.f = n^2*abs(Qs[i])^2/(ow.A(a.si[i-1])^2*ow.R(a.si[i-1])^(4/3))
+Fr = sqrt(Qs[i]^2*ow.B(a.si[i-1])/(9.8*ow.A(a.si[i-1])^3))
+dads = (S0 - S.f - S.i)/(1-Fr^2)
+dadsf0 = S0 - S.f - S.i
 ##calculation of the water depths in upstream order
-a.bw[i+1] = a.bw[i] + dads*ds
-a.bwf0[i+1] = a.bwf0[i] + dadsf0*ds
+a.si[i] = a.si[i-1] + dads*ds
+a.sif0[i] = a.sif0[i-1] + dadsf0*ds
 }
 ## the water level is simply the  water depts + the bottom slope
-h.bw = a.bw + Zb.fun(s)
-h.bwf0 = a.bwf0 + Zb.fun(s)
+h.si = a.si + Zb.fun(s)
+h.sif0 = a.sif0 + Zb.fun(s)
 
-plot(s,h.bw, type = "l",ylim = c(0,max(h.bw)),xlab = "S (m)", ylab = "Water level (m)",
-     main = paste("Backwater curve with weir,S0",S0, "Qupstream",Qup),col = "blue",lwd = 3)
+plot(s,h.si, type = "l",ylim = c(0,max(h.si)),xlab = "S (m)", ylab = "Water level (m)",
+     main = paste("Backwater curve with weir,S0",S0, "Qtotal",Qweir),col = "blue",lwd = 3)
 lines(s,Zb.fun(s), col = "brown", lwd = 3)
 grid()
 ##plot the water level at equilibirum
 lines(s,a.equilibrium + Zb.fun(s), col = "red", lty = 2, lwd = 3)
-lines(s,h.bwf0, col = "green", lty = 2, lwd = 3)
+lines(s,h.sif0, col = "green", lty = 2, lwd = 3)
 legend("bottomleft",legend = c("Backwater curve","Bottom elevation","Equilibrium water level","Froude is 0"),
        col = c("blue","brown","red","green"),lty = c(1,1,2),lwd = c(3,3,3))
 
 ##differences between fr0 and fr
-plot(s,h.bw-h.bwf0, type = "l",xlab = "S (m)", ylab = "Difference in water level (m)",
-     main = paste("Difference bw and bwfr=0,S0",S0, "Qupstream",Qup),col = "blue",lwd = 3)
+plot(s,h.si-h.sif0, type = "l",xlab = "S (m)", ylab = "Difference in water level (m)",
+     main = paste("Difference bw.si and bwfr=0,S0",S0, "Qupstream",Qup),col = "blue",lwd = 3)
 grid()
 
+##plot h.bw without side inflow but with Qup=Qup+Qi and h.si with side inflow
+plot(s,h.bw, type = "l",ylim = c(0,max(h.si)),xlab = "S (m)", ylab = "Water level (m)",
+     main = paste("Backwater curve with and without side inflow,S0",S0, "Qupstream",Qup),col = "blue",lwd = 3)
+lines(s,h.si, col = "red", lwd = 3)
+grid()
+
+##difference between the backwater curve with and without side inflow
+plot(s,h.bw-h.si, type = "l",xlab = "S (m)", ylab = "Difference in water level (m)",
+     main = paste("Difference bw and bw.si,S0",S0, "Qupstream",Qup),col = "blue",lwd = 3)
+grid()
 
 ```
 
+</div>
