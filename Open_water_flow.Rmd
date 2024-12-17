@@ -211,13 +211,43 @@ print(paste("the equilibrium water level is : ",a.equilibrium, "for a discharge 
 
 ```
 
-## Calculating $\frac{da}{ds}$
+## Calculating $\frac{da}{ds}$ without side inflow
+
+
 
 $$
  \frac{\partial a}{\partial s} = \frac{S_0 - S_f}{1-Fr^2} \\
  S_f = \frac{n^2 |Q|^2}{A^2R^{4/3}} \\
  Fr = \sqrt{\frac{Q^2B}{gA^3}}
 $$
+
+### Numerical approach
+
+The calculation of the water level in the river can be done by a explicit scheme. 
+So:
+
+$$
+\frac{\partial a}{\partial s} = \frac{S_0 - S_f}{1-Fr^2} \\
+\Downarrow \\
+\frac{\Delta a}{\Delta s} \approx \frac{S_0 - S_f}{1-Fr^2} \\
+\Downarrow \\
+a[s+\Delta s] = a[s ] + \frac{S_0 - S_f}{1-Fr^2} \Delta s
+$$
+Where $S_f$ and $Fr$ are calculated with the water depth at the current location $a[s]$.
+
+### The Code 
+
+To determine the $\frac{\Delta a}{\Delta s}$, code starts at the downstream end, where (for now) the water level is prescribed. The water depth $\Delta s$ upstream, $a[s + \Delta s]$ is based on $\,S_f(a[s]$ and $\,Fr^2(a[s])$. 
+This can be accomplished using a loop, starting at the downstream end and moving upstream with a $\Delta s$ spatial step.
+For all $a[s]$ till the before last location, which is $a[s=L]$ do:
+
+  * Calculate $S_f$ and $Fr$ at the current location with the current $a[s]$
+  * Calculate $\frac{\partial a}{\partial s}$ with $S_0$, $S_f$ and $Fr$
+  * Calculate $a[s + \Delta s]$ with $a[s]$ and $\frac{\partial a}{\partial s}$  
+  * Repeat the above steps till the before last location  
+
+So for the last iteration through this loop, the before last gradient $\frac{\partial a}{\partial s}$ is used to calculate the water level at the last location, the upstream node.  
+
 
 ```{r}
 #nodal distance
@@ -329,7 +359,7 @@ dadsf0 = S0 - S.f
 a.bw[i+1] = a.bw[i] + dads*ds
 a.bwf0[i+1] = a.bwf0[i] + dadsf0*ds
 }
-## the water level is simply the  water depts + the bottom slope
+## the water level is simply the  water depth + the bottom slope
 h.bw = a.bw + Zb.fun(s)
 h.bwf0 = a.bwf0 + Zb.fun(s)
 
@@ -404,7 +434,7 @@ Simply copy the previous chunk and add the side inflow to the calculation of the
 <div class="answer"> 
 ```{r}
 ####same chunk as above but now side inflow Si is added
-# Discharge at starting point of calcualtion, so at the weir
+# Discharge at starting point of calculation, so at the weir
 Qweir = Qup + I*ow.L
 # setup the Qs and a.si array with zeros
 Qs = rep(0,times = length(a.bw))
