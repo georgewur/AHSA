@@ -3,6 +3,8 @@ title: "Open water flow"
 output: 
   html_notebook:
    css:  want_n.css
+   number_sections: yes
+   toc: yes
 author: G. Bier
 ---
 
@@ -10,18 +12,22 @@ author: G. Bier
 
 This document is designed to give a short introduction in some of the hydraulic properties of channel flow and some basic concept to calculate water levels in rivers, canals, channels etc..
 It is NOT intended to be a crash course in hydraulics.
+The content is based on several lectures notes, spreadsheets and scripts from P.J.J.F. Torfs, a former lecturer of this course.
 
 # Equations for open water flow
 
 The flow in rivers as for example the Regge is most often described by the so called St-Venant equations, expressing respectively the mass and the momentum balance (only in *x*-direction):
 
+
 $$
-\begin{align*}
-\frac{\partial A}{\partial t} + \frac{\partial Q}{\partial x} &= I &\text{: mass balance}\\
+\begin{aligned}
+\frac{\partial A}{\partial t} + \frac{\partial Q}{\partial x} &= I &\quad&: \text{ mass balance}\\
 \frac{\partial Q}{\partial t} + \frac{\partial Q\,u}{\partial x} 
-            &= g\;A\;\Big( S_o - S_f - \frac{\partial a}{\partial x}\Big) &\text{: momentum balance}
-\end{align*}
+            &= g\;A\;\Big( S_o - S_f - \frac{\partial a}{\partial x}\Big) &\quad&: \text{ momentum balance}
+\end{aligned}
 $$
+
+
 
 As we are here less interested in highly dynamic open water calculations, a simplification of the second equation above will be used. This simplification starts from the observation that in many situations (certainly lowland situations) the first two terms in the momentum part of the St-Venant equations are much smaller than the terms on the right hand side.
 
@@ -79,7 +85,7 @@ The open water has its own standard units:
 -   length unit = $\bf{m}$ meter
 -   time unit = $\bf{s}$ second
 
-## Geometry of the open water domain
+# Geometry of the open water domain
 
 In contrast to groundwater flow, open water flow is limmitid to the open water course itself. This could be simulated in 2D, in de cross sectional and depth domain, or more frequently use averged depth. As can be seen in the abovementionded equations.
 
@@ -211,7 +217,7 @@ print(paste("the equilibrium water level is : ",a.equilibrium, "for a discharge 
 
 ```
 
-## Calculating $\frac{da}{ds}$ without side inflow
+# Calculating $\frac{da}{ds}$ without side inflow
 
 
 
@@ -221,7 +227,7 @@ $$
  Fr = \sqrt{\frac{Q^2B}{gA^3}}
 $$
 
-### Numerical approach
+## Numerical approach
 
 The calculation of the water level in the river can be done by a explicit scheme. 
 So:
@@ -235,7 +241,7 @@ a[s+\Delta s] = a[s ] + \frac{S_0 - S_f}{1-Fr^2} \Delta s
 $$
 Where $S_f$ and $Fr$ are calculated with the water depth at the current location $a[s]$.
 
-### The Code 
+## The Code with a prescribed downstream water level
 
 To determine the $\frac{\Delta a}{\Delta s}$, code starts at the downstream end, where (for now) the water level is prescribed. The water depth $\Delta s$ upstream, $a[s + \Delta s]$ is based on $\,S_f(a[s]$ and $\,Fr^2(a[s])$. 
 This can be accomplished using a loop, starting at the downstream end and moving upstream with a $\Delta s$ spatial step.
@@ -246,19 +252,19 @@ For all $a[s]$ till the before last location, which is $a[s=L]$ do:
   * Calculate $a[s + \Delta s]$ with $a[s]$ and $\frac{\partial a}{\partial s}$  
   * Repeat the above steps till the before last location  
 
-So for the last iteration through this loop, the before last gradient $\frac{\partial a}{\partial s}$ is used to calculate the water level at the last location, the upstream node.  
+So for the last iteration through this loop, the last gradient $\frac{\partial a}{\partial s}$ is used to calculate the water level at the last location, the upstream node.  
 
 
 ```{r}
 #nodal distance
 ds = -50
-#trajectory of the river
+#nodes along trajectory of the river
 s = seq(0,-ow.L, by = ds)
 #create an array for the water depths
-a.bw =s
+a.bw = s
 # first downstream prescribed water level
 a.bw[1] = 1.86
-# Discharge rate upstream Qup
+# loop for calculating the water levels
 for (i in 1:(length(a.bw)-1) )
 {
 S.f = n^2*abs(Qup)^2/(ow.A(a.bw[i])^2*ow.R(a.bw[i])^(4/3))
@@ -284,6 +290,8 @@ legend("bottomleft",legend = c("Backwater curve","Bottom elevation","Equilibrium
 
 In de previous assignment the downstream water level was given. Now we will calculate the water level downstream of a weir. The weir is a simple rectangular weir with a discharge coefficient of 0.62. The weir is 1.5 m high and 2 m wide.
 
+
+### The weir function
 ```{r}
 #weir
 Cd = 0.62
@@ -303,6 +311,11 @@ Qweir = function(h)
  
 }
 
+```
+
+## The code for calculation of the backwater curve with a weir
+
+```{r}
 ####same chunck as above but now with a weir level based on Qup
 # first downstream prescribed water level
 a.bw[1] = hweir(Qup)
@@ -326,8 +339,6 @@ grid()
 lines(s,a.equilibrium + Zb.fun(s), col = "red", lty = 2, lwd = 3)
 legend("bottomleft",legend = c("Backwater curve","Bottom elevation","Equilibrium water level"),
        col = c("blue","brown","red"),lty = c(1,1,2),lwd = c(3,3,3))
-
-
 ```
 
 
@@ -381,7 +392,7 @@ grid()
 
 ```
 
-## Adding side inflow S_i
+# Calculating $\frac{da}{ds}$ with constant side inflow $S_i$
 
 In the previous derivation of some of the equations it is shown that 
 
@@ -395,14 +406,15 @@ With:
 *   $u$ = flow velocity $m/s$
 *   $I$ = side inflow $m^2/s$
 
-The local flow velocity (at $s[i]$) can be calculated as: $\frac{Q_s[i]}{A_s[i]}$ with $Q_s$ being the discharge at $s[i]$ and $A_s$ the wetted area at $s[i]$.
+## Determining $I$  
 
 The side inflow can be calculated as a flux coming from local water courses like ditches. The normative discharge for grassland is 7-10 mm/d and for arable land 7-10 mm/d (ctt vademecum 1988). 
+
 
 When the catchment area of the river is known, the side inflow can be calculated as: $I = \frac{Q_{catchment}}{L_{river}}$ with $Q$ being the total discharge entering the river from the catchment area over the length of the river $L_{river}$.
 
 <div class="question">
-Calculate the side inflow for the river Regge assuming a  catchment area of (5.8/29*9882ha; krw midden-regge) and a length of 5800 m.
+Calculate the side inflow for the river Regge assuming a normative discharge of 7 mm/d, a  catchment area of (5.8/29*9882ha; krw midden-regge) and a length of 5800 m.
 </div>
 
 <div class="answer">
@@ -419,10 +431,30 @@ I = Q_Si/ow.L
 
 </div>
 
-To calculate the slope of the river with the side inflow, the following equation can be used:
-$S_i = \frac{2uI}{gA}$. 
-This means that besides $I$, the flow velocity $u$ and $A$ at each location along the river $s[i]$ is needed. The $u$ can be calculated as $u = \frac{Q}{A}$. The wetted area $A$ can be calculated as $A = b\,a + m\,a^2$, with $a$ at the current location.  
-The local discharge is calculated starting at the weir and moving upstream. The local discharge is calculated as $Q_s[i] = Q_s[i-1] + I\,ds$. The local water depth is calculated as $a_s[i] = a_s[i-1] + \frac{S_0 - S_f - S_i}{1-Fr^2}\,ds$.
+
+## Numerical approach
+
+Also here we will apply an explicit scheme to calculate the water level in the river.  
+But in this case the added side inflow $S_i$ requires additional computations of intermediate values for $u$ and $A$.
+
+The local flow velocity is calculated with: $u(a[s]) = \frac{Q(a[s])}{A(a[s])}$. So here $Q$ and $A$ are updated for the known water depth $a[s]$.
+
+
+## The Code 
+
+Similar to the previous code section, to determine the $\frac{\Delta a}{\Delta s}$, code starts at the downstream end, where weir is located. The water depth $\Delta s$ upstream, $a[s + \Delta s]$ is based on $\,S_f(a[s])$ and $\,Fr^2(a[s])$. 
+This can be accomplished using a loop, starting at the downstream end and moving upstream with a $\Delta s$ spatial step.
+For all $a[s]$ up to the last location (not including), so till ($a[L-\Delta s]$:
+
+  * Calculate $A$, $P$ and $R$ at the current location with the current $a[s]$
+  * Calculate $Q$ at the current location with $Q(a[s-1]) - I*-ds$
+  * Calculate $u$ at the current location with $\frac{Q(a[s])}{A(a[s])}$
+  * Calculate $S_i$, $S_f$ and $Fr$ at the current location with the current $a[s]$
+  * Calculate $\frac{\partial a}{\partial s}$ with $S_0$, $S_i$, $S_f$ and $Fr$
+  * Calculate $a[s + \Delta s]$ with $a[s]$ and $\frac{\partial a}{\partial s}$  
+  * Repeat the above steps till the before last location  
+
+So for the last iteration through this loop, the last gradient $\frac{\partial a}{\partial s}$ is used to calculate the water level at the last location $a[s=L]$, the upstream node.  
 
 
 
@@ -431,43 +463,40 @@ Calculate the backwater curve now including the side inflow.
 Simply copy the previous chunk and add the side inflow to the calculation of the water level.
 </div>
 
-<div class="answer"> 
+<div class="answer">
+
 ```{r}
-####same chunk as above but now side inflow Si is added
-# Discharge at starting point of calculation, so at the weir
-Qweir = Qup + I*ow.L
-# setup the Qs and a.si array with zeros
-Qs = rep(0,times = length(a.bw))
+####same chunck as above but now with a weir level based on Qup
+# new set of water depth for backwater curves including side inflow
 a.si = rep(0,times = length(a.bw))
 # first downstream prescribed water level
-a.si[1] = hweir(Qweir)
-##COMPARING a.bw and a.si with both Qup = 1.25+1.60125
 a.si[1] = hweir(Qup)
 a.sif0 = a.si
-
-#first Qs = Qweir
-Qs[1] = Qweir
-#loop for calculating the water levels
-for (i in 2:(length(a.bw)-1) )
+# a Q array along the trajectory of the river
+Qs = rep(0,times = length(a.si))
+# the first Q is the Q at the weir
+Qs[1] = Qup
+# loop for calculating the water levels
+for (i in 1:(length(a.si)-1) )
 {
-#calculate the Q, u and Si at the current location
-Qs[i] = Qs[i-1] - I*-ds  ## ds is negative!! and I*ds should be subtracted for the Qs upstream
-u = Qs[i]/ow.A(a.si[i-1])
-S.i = 2*u*I/(9.8*ow.A(a.si[i-1]))
-S.f = n^2*abs(Qs[i])^2/(ow.A(a.si[i-1])^2*ow.R(a.si[i-1])^(4/3))
-Fr = sqrt(Qs[i]^2*ow.B(a.si[i-1])/(9.8*ow.A(a.si[i-1])^3))
-dads = (S0 - S.f - S.i)/(1-Fr^2)
-dadsf0 = S0 - S.f - S.i
-##calculation of the water depths in upstream order
-a.si[i] = a.si[i-1] + dads*ds
-a.sif0[i] = a.sif0[i-1] + dadsf0*ds
+  A = ow.A(a.si[i])
+  Q = Qs[i] - I*-ds  ## ds is negative!! and I*ds should be subtracted for the Qs upstream
+  u = Q/A
+  S.i = 2*u*I/(9.8*A)
+  S.f = n^2*abs(Q)^2/(A^2*ow.R(a.si[i])^(4/3))
+  Fr = sqrt(Q^2*ow.B(a.si[i])/(9.8*A^3))
+  dads = (S0 - S.f)/(1-Fr^2)
+  dadsf0 = S0 - S.f
+  ##calculation of the water depths in upstream order
+  a.si[i+1] = a.bw[i] + dads*ds
+  a.sif0[i+1] = a.bwf0[i] + dadsf0*ds
 }
-## the water level is simply the  water depts + the bottom slope
+## the water level is simply the  water depth + the bottom slope
 h.si = a.si + Zb.fun(s)
 h.sif0 = a.sif0 + Zb.fun(s)
 
-plot(s,h.si, type = "l",ylim = c(0,max(h.si)),xlab = "S (m)", ylab = "Water level (m)",
-     main = paste("Backwater curve with weir,S0",S0, "Qtotal",Qweir),col = "blue",lwd = 3)
+plot(s,h.bw, type = "l",ylim = c(0,max(h.bw)),xlab = "S (m)", ylab = "Water level (m)",
+     main = paste("Bw curve,Si and weir,S0",S0, "Qupstream",Qup),col = "blue",lwd = 3)
 lines(s,Zb.fun(s), col = "brown", lwd = 3)
 grid()
 ##plot the water level at equilibirum
@@ -478,20 +507,12 @@ legend("bottomleft",legend = c("Backwater curve","Bottom elevation","Equilibrium
 
 ##differences between fr0 and fr
 plot(s,h.si-h.sif0, type = "l",xlab = "S (m)", ylab = "Difference in water level (m)",
-     main = paste("Difference bw.si and bwfr=0,S0",S0, "Qupstream",Qup),col = "blue",lwd = 3)
+     main = paste("Difference bwsi and bwsifr=0,S0",S0, "Qupstream",Qup),col = "blue",lwd = 3)
 grid()
 
-##plot h.bw without side inflow but with Qup=Qup+Qi and h.si with side inflow
-plot(s,h.bw, type = "l",ylim = c(0,max(h.si)),xlab = "S (m)", ylab = "Water level (m)",
-     main = paste("Backwater curve with and without side inflow,S0",S0, "Qupstream",Qup),col = "blue",lwd = 3)
-lines(s,h.si, col = "red", lwd = 3)
-grid()
-
-##difference between the backwater curve with and without side inflow
-plot(s,h.bw-h.si, type = "l",xlab = "S (m)", ylab = "Difference in water level (m)",
-     main = paste("Difference bw and bw.si,S0",S0, "Qupstream",Qup),col = "blue",lwd = 3)
-grid()
 
 ```
 
 </div>
+
+
