@@ -485,17 +485,17 @@ for (i in 1:(length(a.si)-1) )
   S.i = 2*u*I/(9.8*A)
   S.f = n^2*abs(Q)^2/(A^2*ow.R(a.si[i])^(4/3))
   Fr = sqrt(Q^2*ow.B(a.si[i])/(9.8*A^3))
-  dads = (S0 - S.f)/(1-Fr^2)
-  dadsf0 = S0 - S.f
+  dads = (S0 - S.f - S.i)/(1-Fr^2)
+  dadsf0 = S0 - S.f - S.i
   ##calculation of the water depths in upstream order
-  a.si[i+1] = a.bw[i] + dads*ds
-  a.sif0[i+1] = a.bwf0[i] + dadsf0*ds
+  a.si[i+1] = a.si[i] + dads*ds
+  a.sif0[i+1] = a.sif0[i] + dadsf0*ds
 }
 ## the water level is simply the  water depth + the bottom slope
 h.si = a.si + Zb.fun(s)
 h.sif0 = a.sif0 + Zb.fun(s)
 
-plot(s,h.bw, type = "l",ylim = c(0,max(h.bw)),xlab = "S (m)", ylab = "Water level (m)",
+plot(s,h.si, type = "l",ylim = c(0,max(h.bw)),xlab = "S (m)", ylab = "Water level (m)",
      main = paste("Bw curve,Si and weir,S0",S0, "Qupstream",Qup),col = "blue",lwd = 3)
 lines(s,Zb.fun(s), col = "brown", lwd = 3)
 grid()
