@@ -10,27 +10,27 @@ hweir = function(Q,weir.b)
   return (weir.d + (Q/(2/3*sqrt(2*9.8)*Cd*weir.b))^(2/3))
 }
 
-ow.A = function(a)
+ow.A = function(a,ow.b,ow.m)
 {
   return(ow.b*a+ow.m*2*a^2/2)
 }
-ow.B = function(a)
+ow.B = function(a,ow.b,ow.m)
 {
   return(ow.b + 2*ow.m*a)
 }
-ow.P = function(a)
+ow.P = function(a,ow.b,ow.m)
 {
   return(ow.b + a * 2 *sqrt(1 + ow.m^2))
 }
 ow.R = function(a)
 {
-  return(ow.A(a)/ow.P(a))
+  return(ow.A(a,ow.b,ow.m)/ow.P(a,ow.b,ow.m))
 }
 
 ow.L = 5800
 S0 = 0.001
 ds = -50
-ow.b = 10 
+
 
 n = 0.05
 ow.b = 1 #just a guess
@@ -69,13 +69,13 @@ manipulate({
   #loop for calculating the water levels
   for (i in 1:(length(a.si)-1) )
   {
-    A = ow.A(a.si[i])
+    A = ow.A(a.si[i],ow.b,ow.m)
     Q = Qs[i]
     u = Q/A
     I = (Qup + Q_Si)/ow.L
     S.i = 2*u*I/(9.8*A)
     S.f = n^2*abs(Q)^2/(A^2*ow.R(a.si[i])^(4/3))
-    Fr = sqrt(Q^2*ow.B(a.si[i])/(9.8*A^3))
+    Fr = sqrt(Q^2*ow.B(a.si[i],ow.b,ow.m)/(9.8*A^3))
     dads = (S0 - S.f - S.i)/(1-Fr^2)
     ##calculation of the water depths in upstream order
     a.si[i+1] = a.si[i] + dads*ds
@@ -89,11 +89,13 @@ manipulate({
   grid()
   
 },
-Qup = slider(0.1, 10, initial = 1.50, step = 0.1, label = "Qup"),
+Qup = slider(0.15, 10, initial = 1.50, step = 0.1, label = "Qup"),
 Q_Si = slider(0, 10, initial = 0.50, step = 0.1, label = "Q_Si"),
-S0 = slider(0, 0.005, initial = 0.001, step = 0.0001, label = "S0"),
-n = slider(0, 0.05, initial = 0.03, step = 0.001, label = "n"),
-weir.b = slider(0.1, 10, initial = 1.5, step = 0.1, label = "weir.b")
+S0 = slider(0.0001, 0.005, initial = 0.001, step = 0.0001, label = "S0"),
+n = slider(0.01, 0.05, initial = 0.03, step = 0.01, label = "n"),
+weir.b = slider(0.1, 10, initial = 1.5, step = 0.1, label = "weir.b"),
+ow.b = slider(1, 10, initial = 1, step = 0.2, label = "ow.b"),
+ow.m = slider(1, 4, initial = 1, step = 0.2, label = "ow.m")
 )
 
 
