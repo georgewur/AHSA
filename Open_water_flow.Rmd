@@ -123,8 +123,8 @@ ow.b = 1 #just a guess
 ow.m = 1 #just a guess
 
 ##Upstream Discharge 
-#Qup = 1.25 #m3/s
-Qup = 1.25 + 1.60125 #m3/s with side inflow based on the catchment area of the Regge and a normative discharge of 7 mm/d
+Qup = 1.25 #m3/s
+#Qup = 1.25 + 1.60125 #m3/s with side inflow based on the catchment area of the Regge and a normative discharge of 7 mm/d
 ow.A = function(a)
 {
   return(ow.b*a+ow.m*2*a^2/2)
@@ -192,9 +192,26 @@ Zb.fun = approxfun(c(0,-ow.L),c(0,ow.L*S0))
 
 ## Equilibrium flow
 
+With equilibrium flow is meant the flow in the river when the water level is constant over the length of the river. This is the case when the discharge is equal to the discharge that can be transported by the river without changing the water level. This discharge is called the equilibrium discharge and can be calculated with the following formula:
+
 $$
 Q_\text{equi} = \frac{1}{n}\sqrt{S_0}AR^{2/3}
 $$
+
+### Manning coefficient
+
+The roughness of the river bed is expressed by the Manning coefficient $n$. This coefficient is mostly determined by lab experiments (like e.g. the Krayenhof van de Leur Laboratory for Water and Sediment transport, here on campus).
+Below a table of some typical values for $n$:
+
+| Type | Surface | $n$ in $\bf{s/m^{1/3}}$ |
+|------|---------|-----|
+| Natural rivers | Sand | 0.03 - 0.05 |
+| Natural rivers | Gravel | 0.03 - 0.05 |
+| Natural rivers | Rock | 0.03 - 0.05 |
+| Natural rivers | Earth straight | 0.02 - 0.025 |
+| Natural rivers | Earth meandering | 0.03 - 0.05 |
+| Canals | earth straight | 0.018 - 0.025 |
+| Canals | earth meandering | 0.025 - 0.04 |
 
 
 ```{r}
@@ -470,17 +487,15 @@ Simply copy the previous chunk and add the side inflow to the calculation of the
 # new set of water depth for backwater curves including side inflow
 a.si = rep(0,times = length(a.bw))
 # first downstream prescribed water level
-a.si[1] = hweir(Qup)
+a.si[1] = hweir(Qup + Q_Si)
 a.sif0 = a.si
 # a Q array along the trajectory of the river
-Qs = rep(0,times = length(a.si))
-# the first Q is the Q at the weir
-Qs[1] = Qup
-# loop for calculating the water levels
+Qs = seq(Qup+Q_Si,Qup,by=I*ds)
+#loop for calculating the water levels
 for (i in 1:(length(a.si)-1) )
 {
   A = ow.A(a.si[i])
-  Q = Qs[i] - I*-ds  ## ds is negative!! and I*ds should be subtracted for the Qs upstream
+  Q = Qs[i]
   u = Q/A
   S.i = 2*u*I/(9.8*A)
   S.f = n^2*abs(Q)^2/(A^2*ow.R(a.si[i])^(4/3))
@@ -495,19 +510,22 @@ for (i in 1:(length(a.si)-1) )
 h.si = a.si + Zb.fun(s)
 h.sif0 = a.sif0 + Zb.fun(s)
 
-plot(s,h.si, type = "l",ylim = c(0,max(h.bw)),xlab = "S (m)", ylab = "Water level (m)",
-     main = paste("Bw curve,Si and weir,S0",S0, "Qupstream",Qup),col = "blue",lwd = 3)
+plot(s,h.si, type = "l",ylim = c(0,max(h.si)),xlab = "S (m)", ylab = "Water level (m)",
+     main = paste("Bw curve,Si and weir,S0",S0, "Qupstream",Qup+Q_Si),col = "blue",lwd = 3)
 lines(s,Zb.fun(s), col = "brown", lwd = 3)
 grid()
-##plot the water level at equilibirum
-lines(s,a.equilibrium + Zb.fun(s), col = "red", lty = 2, lwd = 3)
+##plot the water level at equilibrium for the total discharge: Qup + Q_Si
+Qall =  Qup + Q_Si
+a.max = 1.1* hweir(Qall)
+asi.equilibrium = uniroot(function(a) Qequi.fun(a)-Qall,c(0.1,a.max))$root
+lines(s,asi.equilibrium + Zb.fun(s), col = "red", lty = 2, lwd = 3)
 lines(s,h.sif0, col = "green", lty = 2, lwd = 3)
 legend("bottomleft",legend = c("Backwater curve","Bottom elevation","Equilibrium water level","Froude is 0"),
        col = c("blue","brown","red","green"),lty = c(1,1,2),lwd = c(3,3,3))
 
 ##differences between fr0 and fr
 plot(s,h.si-h.sif0, type = "l",xlab = "S (m)", ylab = "Difference in water level (m)",
-     main = paste("Difference bwsi and bwsifr=0,S0",S0, "Qupstream",Qup),col = "blue",lwd = 3)
+     main = paste("Difference bwsi and bwsifr=0,S0",S0, "Qupstream",Qup+Q_Si),col = "blue",lwd = 3)
 grid()
 
 
