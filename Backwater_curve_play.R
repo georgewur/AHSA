@@ -72,7 +72,7 @@ manipulate({
     A = ow.A(a.si[i],ow.b,ow.m)
     Q = Qs[i]
     u = Q/A
-    I = (Qup + Q_Si)/ow.L
+    I =  Q_Si/ow.L
     S.i = 2*u*I/(9.8*A)
     S.f = n^2*abs(Q)^2/(A^2*ow.R(a.si[i])^(4/3))
     Fr = sqrt(Q^2*ow.B(a.si[i],ow.b,ow.m)/(9.8*A^3))
