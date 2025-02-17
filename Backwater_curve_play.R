@@ -33,8 +33,8 @@ ds = -50
 
 
 n = 0.05
-ow.b = 1 #just a guess
-ow.m = 1 #just a guess
+ow.b = 3 #width of the river #just a guess
+ow.m = 2 #side slope of the river #just a guess
 
 #Zb.fun = approxfun(c(0,-ow.L),c(0,ow.L*S0))
 #now Zb.fun need to be a function of S0 as well, since this a slider
@@ -44,16 +44,16 @@ Zb.fun = function(s,S0)
 }
 
 
-Cd = 0.62
+Cd = 0.62  #discharge coefficient for the weir
 
 weir.d = 1.25 #weir/crest height
-weir.b = 1.5 #
+weir.b = 1.5 #weir/crest width
 
 s = seq(0,-ow.L, by = ds)
 
 #the manipulate routine
 Qup = 1.5
-Q_Si = 0.5
+Q_Si = 0.0 #0.5
 S0 = 0.001
 n =0.03
 
@@ -89,13 +89,13 @@ manipulate({
   grid()
   
 },
-Qup = slider(0.15, 10, initial = 1.50, step = 0.1, label = "Qup"),
-Q_Si = slider(0, 10, initial = 0.50, step = 0.1, label = "Q_Si"),
-S0 = slider(0.0001, 0.005, initial = 0.001, step = 0.0001, label = "S0"),
-n = slider(0.01, 0.05, initial = 0.03, step = 0.01, label = "n"),
-weir.b = slider(0.1, 10, initial = 1.5, step = 0.1, label = "weir.b"),
-ow.b = slider(1, 10, initial = 1, step = 0.2, label = "ow.b"),
-ow.m = slider(1, 4, initial = 1, step = 0.2, label = "ow.m")
+Qup = slider(0.15, 10, initial = Qup, step = 0.1, label = "Qup"),
+Q_Si = slider(0, 10, initial = Q_Si, step = 0.1, label = "Q_Si"),
+S0 = slider(0.0001, 0.005, initial = S0, step = 0.0001, label = "S0"),
+n = slider(0.01, 0.05, initial = n, step = 0.01, label = "n"),
+weir.b = slider(0.1, 10, initial = weir.b, step = 0.1, label = "weir.b"),
+ow.b = slider(1, 10, initial = ow.b, step = 0.2, label = "ow.b"),
+ow.m = slider(1, 4, initial = ow.m, step = 0.2, label = "ow.m")
 )
 
 
