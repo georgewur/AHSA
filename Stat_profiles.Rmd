@@ -21,8 +21,8 @@ library(knitr)
 #preprogrammed soil data
 #loading the 
 load("Staring.RData")
-#print(paste("Soil type: ",names(soil.set)," ",lapply(soil.set, function(x) x$name)))
-kable(paste("Soil type: ",names(soil.set)," ",lapply(soil.set, function(x) x$name)))
+print(paste("Soil type: ",names(soil.set)," ",lapply(soil.set, function(x) x$name)))
+#kable(paste("Soil type: ",names(soil.set)," ",lapply(soil.set, function(x) x$name)))
 ```
 
 Plotting the retention curves for specific soil types
@@ -37,9 +37,6 @@ plot(soil$k.fun(psi),psi,type="l",col="red",ylab="Pressure head",xlab="Hydraulic
 plot(soil$k.fun(psi),log10(-psi),log = "y", type="l",col="red",ylab="Pressure head in pF",xlab="Hydraulic conductivity")
 plot(soil$theta.fun(psi),psi,type="l",col="red",ylab="Pressure head",xlab="Water content")
 plot(soil$theta.fun(psi),log10(-psi),log = "y", type="l",col="red",ylab="Pressure head in pF",xlab="Water content")
-#plotting the retention curves
-plot(soil.set$Clay$ThetaS,soil.set$Clay$ThetaR,type="l",col="red",ylim=c(0,1),xlim=c(0,1),xlab="Water content",ylab="Pressure head")
-
 
 # library(plotly)
 # p <- plot_ly(x = ~soil$k.fun(psi), y = ~log10(-psi), type = 'scatter', mode = 'lines', 
@@ -60,7 +57,7 @@ The Richards equation is a partial differential equation that describes the flow
 
 $$
 \frac{\partial \theta}{\partial t} = \frac{\partial q}{\partial z}\\
-\frac{\partial \theta}{\partial t} = \frac{\partial}{\partial z} \left\{ K(\psi) \left ( \frac{\partial psi}{\partial z} +1 \right) \right\}
+\frac{\partial \theta}{\partial t} = \frac{\partial}{\partial z} \left\{ K(\psi) \left ( \frac{\partial \psi}{\partial z} +1 \right) \right\}
 $$
 
 Here we will focus on the general behaviour of flow in the unsaturated zone under stationary conditions for situations with deep and shallow groundwater tables and with different flux rates.
@@ -68,9 +65,9 @@ Here we will focus on the general behaviour of flow in the unsaturated zone unde
 Since we only consider stationary flow, the time derivative is zero. The equation simplifies to:
 
 $$
-\text{Constant} = \frac{\partial}{\partial z} \left\{ K(\psi) \left ( \frac{\partial \psi}{\partial z} +1 \right) \right\}
+0 = \frac{\partial}{\partial z} \left\{ K(\psi) \left ( \frac{\partial \psi}{\partial z} +1 \right) \right\}
 $$
-And since this derivative $\frac{\partial}{\partial z}$ is zero for now but is actually the flux rate. The equation simplifies to:
+And since this derivative $\frac{\partial}{\partial z}$ is zero it means that the outcome between the parenthesis, which is the flux rate $q$, is now a constant. The equation simplifies to:
 
 $$
 q = K(\psi) \left ( \frac{\partial \psi}{\partial z} +1 \right)
