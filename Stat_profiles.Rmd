@@ -1,0 +1,170 @@
+---
+title: "Stationary Profiles Unsaturated Zone"
+output: 
+  html_notebook:
+    css: want_n.css
+---
+
+# Background
+
+The Richards equation
+
+The Retention curves
+
+Loading the soil data
+
+```{r}
+#cleasing the workspace
+rm(list=ls())
+#loading some packages
+library(knitr)
+#preprogrammed soil data
+#loading the 
+load("Staring.RData")
+#print(paste("Soil type: ",names(soil.set)," ",lapply(soil.set, function(x) x$name)))
+kable(paste("Soil type: ",names(soil.set)," ",lapply(soil.set, function(x) x$name)))
+```
+
+Plotting the retention curves for specific soil types
+
+```{r}
+
+#number of data points in pF range: 
+pF = seq(0.01,4.2,by=0.05)
+psi = -10^(pF)
+soil = soil.set$B13
+plot(soil$k.fun(psi),psi,type="l",col="red",ylab="Pressure head",xlab="Hydraulic conductivity")
+plot(soil$k.fun(psi),log10(-psi),log = "y", type="l",col="red",ylab="Pressure head in pF",xlab="Hydraulic conductivity")
+plot(soil$theta.fun(psi),psi,type="l",col="red",ylab="Pressure head",xlab="Water content")
+plot(soil$theta.fun(psi),log10(-psi),log = "y", type="l",col="red",ylab="Pressure head in pF",xlab="Water content")
+#plotting the retention curves
+plot(soil.set$Clay$ThetaS,soil.set$Clay$ThetaR,type="l",col="red",ylim=c(0,1),xlim=c(0,1),xlab="Water content",ylab="Pressure head")
+
+
+# library(plotly)
+# p <- plot_ly(x = ~soil$k.fun(psi), y = ~log10(-psi), type = 'scatter', mode = 'lines', 
+#              line = list(color = 'red')) %>%
+#   layout(title = 'Hydraulic Conductivity vs Pressure Head',
+#          xaxis = list(title = 'Hydraulic conductivity'),
+#          yaxis = list(title = 'Pressure head'))
+# 
+# # Toon de plot
+# p
+
+
+```
+
+# Stationary profiles
+
+The Richards equation is a partial differential equation that describes the flow of water in unsaturated soils. The equation is given by the following equation. Flow in the unsaturated zone is predominantly vertical so here we only consider flow in the $z$ direction equation.
+
+$$
+\frac{\partial \theta}{\partial t} = \frac{\partial q}{\partial z}\\
+\frac{\partial \theta}{\partial t} = \frac{\partial}{\partial z} \left\{ K(\psi) \left ( \frac{\partial psi}{\partial z} +1 \right) \right\}
+$$
+
+Here we will focus on the general behaviour of flow in the unsaturated zone under stationary conditions for situations with deep and shallow groundwater tables and with different flux rates.
+
+Since we only consider stationary flow, the time derivative is zero. The equation simplifies to:
+
+$$
+\text{Constant} = \frac{\partial}{\partial z} \left\{ K(\psi) \left ( \frac{\partial \psi}{\partial z} +1 \right) \right\}
+$$
+And since this derivative $\frac{\partial}{\partial z}$ is zero for now but is actually the flux rate. The equation simplifies to:
+
+$$
+q = K(\psi) \left ( \frac{\partial \psi}{\partial z} +1 \right)
+$$
+##Procedure
+
+1. Define the soil type
+2. Define the domain of the model
+3. Define the boundary conditions
+4. Solve the equation
+
+## Soil type
+Choose one of the soil types given in the `soil.set` object.
+
+## Domain
+Since we are interested in the effect of large and small unsaturated zones the domains could be defined as one being 15 meters and the other 1 meter.
+
+## Boundary conditions
+On top of the domain, i.e. at the surface the flux rate will be given. A positive value indicates an influx, coming from precipitation for example. A negative value indicates an outflux, for example evaporation (bij soil and roots). 
+At the bottom of the domain the pressure head is given. This is the pressure head of the groundwater table.
+
+## Solve the equation
+
+Here we are going to apply an explicit scheme to calculate the pressure head (i.e. $\psi$) in the unsaturated zone. The differential in the (Darcy like) equation is now approximated by a finite differences: 
+
+$$
+\frac{\partial \psi}{\partial z} \approx \frac{\psi_{z}-\psi_{z-\Delta z}}{\Delta z}
+$$
+
+<div class="question">
+Rewrite the Darcy alike question into a finite difference equation that calculates the pressure head at depth $z$, based on all the other terms.
+</div>
+
+<div class="answer">
+$$
+\psi_{z} = \psi_{z-\Delta z} + \left( \frac{q_{z}}{K(\psi_{z-\Delta z})}  - 1 \right)\Delta z
+$$
+</div>
+
+## Implementation
+
+Since the retetention curves are quite non-linear it is practical to have not too large steps ($\Delta z$) in the domain. Start with $\Delta z= 2 cm$
+
+It is custom in the vadoze zone hydrology to use centimeters for the spatial scale. So the flux rate is given in cm/day. The hydraulic conductivity is given in cm/day. The pressure head is given in cm.
+
+```{r}
+#defining the soil type
+#soil = soil.set$B13
+soil = soil.set$O2
+soil_name = soil$name
+
+#defining the domain
+dz = 1 #cm 
+psi = seq(-1500,0,by=dz) #cm
+z = psi
+
+#boundary conditions
+
+#at the groundwater table the pressure head psi is 0.0
+psi[1] = 0.0
+
+#at the surface the flux rate is given
+q = 0.01 #cm/day
+
+
+
+for (i in 2:length(psi)){
+  
+    psi[i] = psi[i-1] + (q/soil$k.fun(psi[i-1]) - 1)*dz
+  
+}
+
+oldpar = par(no.readonly = TRUE)
+
+par(mfrow=c(1,2)) #this creates two plots next to each other
+
+plot(z,rev(z),type= "l",lty= "dashed",col="blue",main = paste("Soil:",soil_name,"; q = ",q,"cm/day"),
+     ylab="Depth (cm)",xlab="Pressure head (psi in cm)",xlim=range(psi))
+lines(psi,z,type="l",col="red")
+grid()
+
+range_theta = c(soil$theta.res,soil$theta.sat)
+plot(soil$theta.fun(psi),z,type="l",col="red",
+     ylab="Depth (cm)",xlab="Water content",xlim=range_theta)
+grid()
+
+par(oldpar)
+
+```
+
+Checking the flux rate
+
+```{r}
+#q = -k(psi)(dpsi/dz + 1))
+q = soil$k.fun(psi)*(diff(psi)/dz + 1)
+```
+
