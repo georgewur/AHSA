@@ -269,12 +269,32 @@ Zb.fun = approxfun(c(0,-ow.L),c(0,ow.L*S0))
 #a plot to illustrate the function
 s = seq(-ow.L,0,by = 50)
 plot(s,Zb.fun(s), type = "l", lwd = 3, col = "brown", 
-     main = "Bottom elevation Z", xlab = 'Distance to control stucture',
+     main = "Bottom elevation Z", xlab = 'Distance to control stucture (e.g. weir)',
      ylab = 'Altitude (m)')
 grid()
 ```
 
-### Weir
+## Weir
+
+In lowland areas like the Netherlands, most open water courses are managed by weirs. They may have different shapes and sizes. Here we will only consider rectangular weirs. Below a plot indicating the different dimensions of the weir within the trapezoidal profile of the open water course.
+
+```{r}
+weir.b = 6.0  #m width of the weir 
+weir.d = 1 #m crest above river bottom
+# draw weir in cross section
+coords_profile = matrix(c(6.5,0,6,11,17,10.5, 3,3,0,0,3,3),nrow = 6,byrow = FALSE)
+coords_weir = matrix(c(6.5,6.5,10.5,10.5, 3,2,2,3), nrow = 4, byrow = FALSE)
+plot(coords_profile,type = "l",lwd = 3, col = "brown",xlab = "",ylab = "", axes = FALSE,
+     main = "Dimensions of the profile and weir")
+lines(coords_weir,type = "l", lwd = 3, col = "blue")
+grid(nx = 10, ny = 10)
+arrows(8.5,0,8.5,2.0,length = 0.1, angle = 30,code = 3,col="blue",lwd =2)
+text(8.8,1,"crest height",pos=3,srt=90,col="blue")
+arrows(6.5,2.0,10.5,2.0,length = 0.1, angle = 30, code = 3, col = "blue",lwd =2)
+text(8.5,2.0,"weir width",pos=3,col="blue")
+box()
+     
+```
 
 $$
  Q = \frac{2}{3}\sqrt{2g} C_D b (h - d)^{3/2}
@@ -404,7 +424,7 @@ legend("bottomleft",legend = c("Backwater curve","Bottom elevation","Equilibrium
 
 ## Adding a weir
 
-In de previous assignment the downstream water level was given. Now we will calculate the water level downstream of a weir. The weir is a simple rectangular weir with a discharge coefficient of 0.62. The weir is 1.5 m high and 2 m wide.
+In de previous assignment the downstream water level was given. Now we will calculate the water level downstream of a weir. The weir is a simple rectangular weir with a discharge coefficient of 0.62.
 
 ### The weir function
 
