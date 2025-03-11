@@ -86,7 +86,7 @@ manipulate({
   ## the water level is simply the  water depth + the bottom slope #ylim = c(0,h.si[length(h.si)]),
   h.si = a.si + Zb.fun(s,S0)
   plot(s,h.si, type = "l",xlab = "Distance from weir (m)", ylab = "Water level (m)",ylim = c(0,h.si[length(h.si)]),
-       main = paste("Bw curve,Si and weir,S0",S0, "Qupstream",Qup+Q_Si),col = "blue",lwd = 3)
+       main = paste("S0 :",S0, "Q_up :",Qup, "Q_Si :",Q_Si),col = "blue",lwd = 3)
   lines(s,Zb.fun(s,S0), col = "brown", lwd = 3)
   rect(-15,0,0,weir.d,col = "brown")
   grid()
