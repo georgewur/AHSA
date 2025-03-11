@@ -9,27 +9,30 @@ hweir = function(Q,weir.b)
 {
   return (weir.d + (Q/(2/3*sqrt(2*9.8)*Cd*weir.b))^(2/3))
 }
-
+#wetted Area
 ow.A = function(a,ow.b,ow.m)
 {
   return(ow.b*a+ow.m*2*a^2/2)
 }
+# water table width
 ow.B = function(a,ow.b,ow.m)
 {
   return(ow.b + 2*ow.m*a)
 }
+#wetten perimeter
 ow.P = function(a,ow.b,ow.m)
 {
   return(ow.b + a * 2 *sqrt(1 + ow.m^2))
 }
+#hydraulic radius
 ow.R = function(a)
 {
   return(ow.A(a,ow.b,ow.m)/ow.P(a,ow.b,ow.m))
 }
-
+# some parameter values losely related to the Midden-Regge
 ow.L = 5800
 S0 = 0.001
-ds = -50
+ds = -10
 
 
 n = 0.05
