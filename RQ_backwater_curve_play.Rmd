@@ -1,0 +1,55 @@
+---
+title: "Research Questions for Backwater Curve Play"
+  html_notebook:
+    css: want_n.css
+    toc: true
+    number_sections: true
+---
+
+# Research Questions
+
+The following question helps you to understand the impact of different hydraulic parameters on water depth and backwater curve.
+
+Use the following base values:
+
+-   Qup = 1.55,
+
+-   Q_SI = 0.0,
+
+-   S0 = 0.001,
+
+-   n = 0.03,
+
+-   weir.b = 1.5,
+
+-   ow.b = 3,
+
+-   ow.m = 2
+
+1.  Determine how far the equilibrium level extends in the profile at the base values of the sliders.
+
+    1.  approximately 1800 from the weir.
+
+2.  What is the effect of the Manning coefficient on the water levels? What could be a measure to adjust this coefficient in the field?
+
+    1.  Increased n means poor flow and thus high levels. Cleaning reduces n.
+
+3.  What happens if the weir width is significantly narrowed (e.g., due to floating material partially blocking it) and what effect would that have on the plots next to the river
+
+    1.  the river fills up as if it were a bathtub, the damming effect extends up to approximately 4500 m upstream with a level of about 5.4 m, plots may flood.
+
+4.  Which slider has the most and which the least impact on the water depth upstream and above the weir if the slider values are doubled (and then reset) individually?
+
+    1.  S0 has the greatest impact and sideslope the least.
+
+5.  What is the function of a sideslope? In other words, why wouldn't you apply 1:1 walls?
+
+    1.  a straight box (soil stability, sand erodes very quickly at 1:1) depending on water speed; erosion, ecohydrological; a gentle profile allows pioneer vegetation to develop along the banks. Easier for fauna (water birds?) to get out of the water.
+
+6.  What is the impact of lateral inflow on the levels
+
+    1.  there is hardly any equilibrium level (upstream) anymore. The water depth continues to increase towards the weir
+
+7.  Compare the same discharge with 50% Qup and 50% Q_Si with 100% Qup
+
+    1.  at 100% Qup the level is higher throughout the profile

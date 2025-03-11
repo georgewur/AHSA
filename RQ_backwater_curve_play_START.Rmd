@@ -1,0 +1,41 @@
+---
+title: "Research Questions for Backwater Curve Play"
+  html_notebook:
+    css: want_n.css
+    toc: true
+    number_sections: true
+---
+
+# Research Questions
+
+The following question helps you to understand the impact of different hydraulic parameters on water depth and backwater curve.
+
+Use the following base values:
+
+-   Qup = 1.55,
+
+-   Q_SI = 0.0,
+
+-   S0 = 0.001,
+
+-   n = 0.03,
+
+-   weir.b = 1.5,
+
+-    ow.b = 3,
+
+-    ow.m = 2
+
+1.  Determine how far the equilibrium level extends in the profile at the base values of the sliders.
+
+2.  What is the effect of the Manning coefficient on the water levels? What could be a measure to adjust this coefficient in the field?
+
+3.  What happens if the weir width is significantly narrowed (e.g., due to floating material partially blocking it) and what effect would that have on the plots next to the river
+
+4.  Which slider has the most and which the least impact on the water depth upstream and above the weir if the slider values are doubled (and then reset) individually?
+
+5.  What is the function of a sideslope? In other words, why wouldn't you apply 1:1 walls?
+
+6.  What is the impact of lateral inflow on the levels
+
+7.  Compare the same discharge with 50% Qup and 50% Q_Si with 100% Qup
