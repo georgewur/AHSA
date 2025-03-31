@@ -14,25 +14,25 @@ load(file='Staring.Rdata')
 soil.names = names(soil.set)
 
 manipulate({
-  # Definieer de bodemtype
+  # Define the soil type
   soil <- soil.set[[soil_choice]]
   soil_name <- soil$name
   
-  # Definieer het domein
+  # Definee the domain
   dz <- 1 # cm
   psi <- seq(psi_min, 0, by = dz) # cm
   z <- psi
   
-  # Randvoorwaarden
-  psi[1] <- 0.0 # Grondwaterstand
+  # Lower boundary condition
+  psi[1] <- 0.0 # water table
   
-  # Flux rate aan het oppervlak
+  # Flux rate at the surfac (cm/day)
   for (i in 2:length(psi)) {
     psi[i] <- psi[i-1] + (q / soil$k.fun(psi[i-1]) - 1) * dz
   }
   
   oldpar <- par(no.readonly = TRUE)
-  par(mfrow = c(1, 2)) # Twee plots naast elkaar
+  par(mfrow = c(1, 2)) # Two plots next to each other
   
   plot(z, rev(z), type = "l", lty = "dashed", col = "blue", main = paste("Soil:", soil_name, "; q = ", q, "cm/day"),
        ylab = "Depth (cm)", xlab = "Pressure head (psi in cm)", xlim = range(psi))
@@ -48,7 +48,7 @@ manipulate({
   par(oldpar)
   
 }, 
-q = slider(-0.1, 1, step = 0.01, initial = 0.01, label = "Flux rate (q) (cm/d)"),
-psi_min = slider(-2500, 0, step = 10, initial = -1500, label = "gw table below surface (cm)"),
+q = slider(-1, 1, step = 0.01, initial = 0.01, label = "Flux rate (q) (cm/d)"),
+psi_min = slider(-2500, 0, step = 10, initial = -200, label = "gw table below surface (cm)"),
 #soil_choice = picker("B13", "O2", label = "Soil type"))
 soil_choice = picker(as.list(soil.names), label = "Soil type"))
