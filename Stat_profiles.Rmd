@@ -1,17 +1,21 @@
 ---
 title: "Stationary Profiles Unsaturated Zone"
-output: 
+output:
   html_notebook:
     css: want_n.css
     toc: true
     number_sections: true
+  html_document:
+    css: want_n.css
+    toc: true
+    df_print: paged
 ---
 
 # The Richards equation
 
 The Richards equation is a partial differential equation that describes the flow of water in unsaturated soils. Flow in the unsaturated zone is predominantly vertical so here we only consider flow in the $z$ direction equation.
 
-$$ \frac{\partial \theta}{\partial t} = \frac{\partial q}{\partial z} - S\\ \frac{\partial \theta}{\partial t} = \frac{\partial}{\partial z} \left\{ K(\psi) \left ( \frac{\partial \psi}{\partial z} +1 \right) \right\} -S $$
+$$ \frac{\partial \theta}{\partial t} = -\frac{\partial q}{\partial z} - S\\ \frac{\partial \theta}{\partial t} = \frac{\partial}{\partial z} \left\{ K(\psi) \left ( \frac{\partial \psi}{\partial z} +1 \right) \right\} -S $$
 
 Where:
 
@@ -143,14 +147,71 @@ Here we will focus on the general behavior of flow in the unsaturated zone under
 Since we only consider stationary flow, the time derivative is zero. The equation simplifies to:
 
 $$
-0 = \frac{\partial}{\partial z} \left\{ K(\psi) \left ( \frac{\partial \psi}{\partial z} +1 \right) \right\}
-$$ And since this derivative $\frac{\partial}{\partial z}$ is zero it means that the outcome between the parenthesis, which is the flux rate $q$, is now a constant. The equation (Darcy Buckingham) simplifies to:
-
-$$
-q = K(\psi) \left ( \frac{\partial \psi}{\partial z} +1 \right)
+0 = \frac{\partial q}{\partial z} 
 $$
 
-Given a certain soil type and flux rate, the pressure profile and, from that, the moisture profile can be determined.
+And since this [*derivative*]{.underline} $\frac{\partial q}{\partial z}$ is, zero it means that the flux rate $q$, is now a constant. The equation (i.e. the Darcy Buckingham equation) becomes:
+
+$$
+q =- K(\psi) \left ( \frac{\partial \psi}{\partial z} +1 \right)
+$$
+
+Given a certain soil type, thickness and flux rate, the pressure profile and, from that, the moisture profile can be determined.
+
+### Flow direction
+
+Similar as with the ordinary Darcy equation, the minus sign indicates flow is opposite to the gradient direction. The physical interpretation of this is that flow is going towards the lowest pressure head. However, when calculating the derivative of the pressure head, this would result in a minus sign, turning the direction of flow.
+
+In addition it is customary, in vadoze zone hydrology, to define the $z$ direction positive upwards. This results thus in a positive flux when flow is upwards and negative downward.
+
+The following plot illustrates this;
+
+-   The dashed black line indicates equilibruim state, so no flow
+
+-   The red line illustrates a situation with a soil dryer than equilibrium so flow goes up (evaporation)
+
+-   The blue line illustrates a situation with a wetter soil, flow goes down, precipitation.
+
+```{r echo = FALSE}
+psi_dry = seq(0,-200, length.out = 20)
+psi_wet = seq(0,-100, length.out = 10)
+z_dry = seq(0,125,length.out = 20 )
+z_wet = seq(0,125,length.out = 10 )
+
+
+plot(-z_dry,z_dry, type = "l", lty = "dashed",lwd = 2,
+     ylab =  "z depth (cm)",xlab = "pressure psi (cm)" )
+grid()
+
+
+ lines(psi_dry,z_dry, col = "red",lwd = 2,lty = )
+ points(psi_dry,z_dry, col = "red")
+ lines(psi_wet,z_wet, col = "blue",lwd = 2)
+ points(psi_wet, z_wet, col = "blue")
+ abline(h = c(z_dry[11],z_dry[10]),col = "red",lty="dashed")
+ abline(v = c(psi_dry[11],psi_dry[10]),col ="red",lty="dashed")
+abline(v = c(psi_wet[6],psi_wet[5]),col ="blue",lty="dashed")
+abline(h = c(z_wet[6],z_wet[5]),col = "blue",lty="dashed")
+```
+
+The two examples of pressure gradients the blue and red line will result in a flow down ($-q$) and up ($q$). The numerical example data is shown below:
+
+```{r echo=FALSE}
+delta_psi_wet = psi_wet[5] - psi_wet[6]
+delta_z_wet = z_wet[5] - z_wet[6]
+delta_psi_dry = psi_dry[10] - psi_dry[11]
+delta_z_dry = z_dry[10] - z_dry[11]
+
+print(paste("delta psi dry:",psi_dry[10]," - ",psi_dry[11],'=',delta_psi_dry))
+print(paste("delta z dry:",z_dry[10], '-', z_dry[11], '=', delta_z_dry))
+print(paste('d_psi_dry/d_z_dry = ',delta_psi_dry/delta_z_dry))
+print(paste("-K*{",delta_psi_dry/delta_z_dry,"+1}; q=+/+ flow goes up"))
+
+print(paste("delta psi wet:",psi_wet[5]," - ",psi_wet[6],'=',delta_psi_wet))
+print(paste("delta z wet:",z_wet[5], '-', z_wet[6], '=', delta_z_wet))
+print(paste('d_psi_wet/d_z_wet = ',delta_psi_wet/delta_z_wet))
+print(paste("-K*{",delta_psi_wet/delta_z_wet,"+1}; q=-/- flow goes down"))
+```
 
 ## Procedure
 
@@ -193,13 +254,14 @@ Rewrite the Darcy alike question into a finite difference equation that calculat
 
 ::: answer
 $$
-\psi_{z} = \psi_{z-\Delta z} + \left( \frac{q_{z}}{K(\psi_{z-\Delta z})}  - 1 \right)\Delta z
+q = -K(\psi) \left ( \frac{\psi_z-\psi_{z-\Delta z}}{\Delta z} +1\right )\\
+\psi_{z} = \psi_{z-\Delta z} - \left( \frac{q_{z}}{K(\psi_{z-\Delta z})}  + 1 \right)\Delta z
 $$
 :::
 
 # Implementation
 
-Since the retetention curves are quite non-linear it is practical to have not too large steps ($\Delta z$) in the domain. Start with $\Delta z= 2 cm$
+Since the retetention curves are quite non-linear it is practical to have not too large steps ($\Delta z$) in the domain. Start with $\Delta z= 1 cm$
 
 It is custom in the vadoze zone hydrology to use centimeters for the spatial scale. So the flux rate is given in cm/day. The hydraulic conductivity is given in cm/day. The pressure head is given in cm.
 
@@ -213,22 +275,24 @@ soil = soil.set$O2
 soil_name = soil$name
 
 #DEFINING THE FLOW DOMAIN
+#BE AWARE Z=0 is at the groundwater table Z=Duns is at the surface
+#Z-direction is positive upwards
 dz = 1 #cm small steps are required
-Duns = -1500 #
-psi = seq(Duns,0,by=dz) #cm
-z = psi
+Duns = 1500 # Thickness of the usaturated zone
+psi = seq(0,Duns,by=dz) #a vector for psi profile cm
+z = psi # a vector for the depth
 
 ###BOUNDARY CONDITIONS
 #at the groundwater table the pressure head psi is 0.0
 psi[1] = 0.0
 #at the surface the flux rate is given
-q = 0.01 #cm/day
+q = -0.01 #cm/day
 
 ###CALCULATING THE PRESSURE HEADS with an explicit scheme
 
 for (i in 2:length(psi)){
   
-    psi[i] = xxxxxxxxxxxxxxxxxxxxxx
+    psi[i] = xxxxxxxxxxxxxxxxxxxxxxx
   
 }
 
@@ -237,7 +301,7 @@ oldpar = par(no.readonly = TRUE)
 
 par(mfrow=c(1,2)) #this creates two plots next to each other
 
-plot(z,rev(z),type= "l",lty= "dashed",col="blue",main = paste(soil_name,"; q = ",q,"cm/day"),
+plot(-z,z,type= "l",lty= "dashed",col="blue",main = paste(soil_name,"; q = ",q,"cm/day"),
      ylab="Depth (cm)",xlab="Pressure head (psi in cm)",xlim=range(psi))
 lines(psi,z,type="l",lwd = 3,col="red")
 grid()
@@ -245,37 +309,40 @@ grid()
 range_theta = c(soil$theta.res,soil$theta.sat)
 plot(soil$theta.fun(psi),z,type="l",lwd = 3,col="red",
      ylab="Depth (cm)",xlab="Water content",xlim=range_theta)
-lines(soil$theta.fun(rev(z)),z,lty="dashed",col="blue")
+lines(soil$theta.fun(-z),z,lty="dashed",col="blue")
 grid()
-
 par(oldpar)
-
 ```
 
 ::: answer
-```{r}
+
+Below the code for generating stationary profiles.
+
+```{r eval = TRUE}
 #defining the soil type
-soil = soil.set$B1
-#soil = soil.set$O2
+#soil = soil.set$B13
+soil = soil.set$O2
 soil_name = soil$name
 
 #DEFINING THE FLOW DOMAIN
+#BE AWARE Z=0 is at the groundwater table Z=Duns is at the surface
+#Z-direction is positive upwards
 dz = 1 #cm small steps are required
-Duns = -1500 #
-psi = seq(Duns,0,by=dz) #cm
-z = psi
+Duns = 1500 # Thickness of the usaturated zone
+psi = seq(0,Duns,by=dz) #a vector for psi profile cm
+z = psi # a vector for the depth
 
 ###BOUNDARY CONDITIONS
 #at the groundwater table the pressure head psi is 0.0
 psi[1] = 0.0
 #at the surface the flux rate is given
-q = 0.01 #cm/day
+q = -0.01 #cm/day
 
-###CALCULATING THE PRESSURE HEADS
+###CALCULATING THE PRESSURE HEADS with an explicit scheme
 
 for (i in 2:length(psi)){
   
-    psi[i] = psi[i-1] + (q/soil$k.fun(psi[i-1]) - 1)*dz
+    psi[i] = psi[i-1] - dz * (q/soil$k.fun(psi[i-1])+1)
   
 }
 
@@ -284,7 +351,7 @@ oldpar = par(no.readonly = TRUE)
 
 par(mfrow=c(1,2)) #this creates two plots next to each other
 
-plot(z,rev(z),type= "l",lty= "dashed",col="blue",main = paste(soil_name,"; q = ",q,"cm/day"),
+plot(-z,z,type= "l",lty= "dashed",col="blue",main = paste(soil_name,"; q = ",q,"cm/day"),
      ylab="Depth (cm)",xlab="Pressure head (psi in cm)",xlim=range(psi))
 lines(psi,z,type="l",lwd = 3,col="red")
 grid()
@@ -292,11 +359,9 @@ grid()
 range_theta = c(soil$theta.res,soil$theta.sat)
 plot(soil$theta.fun(psi),z,type="l",lwd = 3,col="red",
      ylab="Depth (cm)",xlab="Water content",xlim=range_theta)
-lines(soil$theta.fun(rev(z)),z,lty="dashed",col="blue")
+lines(soil$theta.fun(-z),z,lty="dashed",col="blue")
 grid()
-
 par(oldpar)
-
 ```
 :::
 
@@ -313,7 +378,7 @@ TIP: use the " diff " function to determine the pressure gradient in the profile
 ::: answer
 ```{r}
 #q = -k(psi)(dpsi/dz + 1))
-q = soil$k.fun(psi[-length(psi)])*(diff(psi)/dz + 1)
+q = -soil$k.fun(psi[-length(psi)])*(diff(psi)/dz + 1)
 range(q)
 ```
 :::
@@ -344,7 +409,7 @@ theta = soil$theta.fun(psi[1000:1500])
 print(paste("moisture content :",head(theta)))
 k = soil$k.fun(psi[1000:1500])
 print(paste("conductivity :",head(k)))
-print(paste("flux rate :",q))
+print(paste("flux rate :",head(q)))
 ```
 :::
 ::::::::
