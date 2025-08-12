@@ -1,0 +1,175 @@
+---
+title: "afleiding stuwkromme met zijdelingse instroom"
+output: html_notebook
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Uitgangspunt
+
+St. Venant vergelijkingen:
+
+$$
+\begin{aligned}
+\frac{\partial A}{\partial t} + \frac{\partial Q}{\partial s} &= I &\quad&: \text{ mass balance}\\
+\frac{\partial Q}{\partial t} + \frac{\partial Q\,u}{\partial s} 
+            &= g\;A\;\Big( S_o - S_f - \frac{\partial a}{\partial s}\Big) &\quad&: \text{ momentum balance}
+\end{aligned}
+$$ with: $A$ = cross sectional area of the river (m$^2$), $Q$ =
+discharge (m$^3$/s), $u$ = flow velocity (m/s), $s$ = distance along the
+river (m), $t$ = time (s), $I$ = side inflow (m$^2$/s), $S_o$ = bed
+slope (m/m), $S_f$ = friction slope (m/m), $a$ = water level (m), $g$ =
+acceleration due to gravity (m/s$^2$).
+
+Door uit te gaan van niet te dynamische aspecten kan je het tijdsaspect
+negeren. Dit houdt dus in dat de afgeleiden naar de tijd gelijk zijn aan
+nul.
+
+De St. Venant vergelijkingen worden dan:
+
+$$
+\begin{aligned}
+\frac{\partial Q}{\partial s} &= I &\quad&: \text{ mass balance}\\
+\frac{\partial Qu}{\partial s} 
+            &= g\;A\;\Big( S_o - S_f - \frac{\partial a}{\partial s}\Big) &\quad&: \text{ momentum balance}
+\end{aligned}
+$$ Nu de linkerterm van de momentumvergelijking uitwerken:
+
+De $u = \frac{Q}{A}$, dus:
+
+$$
+\frac{\partial }{\partial s} \left( Q\frac{Q}{A} \right) = \frac{\partial }{\partial s} \left( \frac{Q^2}{A} \right) 
+$$ Hier de productregel op toepassen: $(u  v)' = u'v + uv'$
+
+Dus:
+
+$$
+\frac{\partial }{\partial s} \left( \frac{Q^2}{A} \right)= \frac{\partial}{\partial s} \left( {Q^2}\frac{1}{A} \right) = \frac{\partial Q^2}{\partial s} \frac{1}{A} + Q^2 \frac{\partial \frac{1}{A}}{\partial s}
+$$ De afgeleide van
+$\frac{\partial Q^2}{\partial s} = 2Q \frac{\partial Q}{\partial s}$\
+De afgeleide van $1/A$ is gelijk aan
+$-1/A^2 \frac{\partial A}{\partial s}$\
+Dus als je deze afgeleiden invult:
+
+$$
+\frac{\partial Q^2}{\partial s} \frac{1}{A} + Q^2 \frac{\partial \frac{1}{A}}{\partial s} = 2\frac{Q}{A}\frac{\partial Q}{\partial s}  -  \frac{Q^2}{A^2} \frac{\partial A}{\partial s}
+$$ De $\frac{Q}{A} = u$ en de $\frac {\partial Q}{\partial s}$ is de
+zijdelingse instroming $I$ uit de massabalans vergelijking.
+
+De linkerterm aan de rechterkant van het = teken kan dus vervangen
+worden door $2uI - \frac{Q^2}{A^2} \frac{\partial A}{\partial s}$ De
+momentum balance wordt dan:
+
+$$
+2uI - \frac{Q^2}{A^2} \frac{\partial A}{\partial s} = g\;A\;\Big( S_o - S_f - \frac{\partial a}{\partial s}\Big) 
+$$
+
+Ga je uit van een rechthoekig profiel dan is $A = a\,b$ dan wordt
+$\frac{\partial A}{\partial s} = b(a)\frac{\partial a}{\partial s}$
+En dan krijg je na wat omwerkingen en invoegen $Fr$:
+
+$$
+\frac{\partial a}{\partial s} = \frac{S_o - S_f}{\Big(1-Fr\Big)}
+$$
+
+LET OP!!
+
+De waterspiegelbreedte $B$ is in het geval van een rechthoekig profiel
+gelijk aan $b$
+
+
+De vergelijking wordt dan:
+
+$$ 2uI - \frac{Q^2b}{A^2} \frac{\partial a}{\partial s} = g\;A\;\Big( S_o - S_f - \frac{\partial a}{\partial s}\Big) $$
+
+Nu de boel door $gA$ delen:
+
+$$ \frac{2uI}{gA} - \frac{Q^2b}{gA^3} \frac{\partial a}{\partial s} = S_o - S_f - \frac{\partial a}{\partial s} $$
+
+::: {style="color : blue"}
+Maar als het geen rechthoekig maar een trapezium profiel is :
+$A = Ba+ma^2$
+
+Ai... dan krijg ik toch met het nodige gedoe/*valt mee..*:
+
+$\frac{\partial A}{\partial s}=\frac{\partial (Ba + ma^2)}{\partial}$
+
+$$ \frac{\partial A}{\partial s}= B\frac{\partial a}{\partial s}+ m \frac{\partial a^2}{\partial s} \rightarrow B \frac{\partial a}{\partial s}+2ma\frac{\partial a}{\partial s}=(B+2ma) \frac{\partial a}{\partial s} $$
+
+Lekker is dat... Ik heb nu dus niet alleen constantes voor de afgeleide
+staan😒
+
+*Valt mee* 😀*want* $b=B+2m$ en dan is dus
+
+inderdaad mijn afleiding hierboven gelijk aan wat Paul definieert:
+
+$\frac{\partial A}{\partial a}=b(a)$ en met de kettingregel:
+$\frac{\partial A}{\partial s}= \frac{\partial A}{\partial a}\frac{\partial a}{\partial s}= b(a)\frac{\partial a}{\partial s}$
+en
+
+$b(a)\frac{\partial a}{\partial s}=(B+2ma)\frac{\partial a}{\partial s}$
+
+:::
+
+
+
+Paul definieert al veel eerder dat* $A$ *een functie van de
+waterspiegelbreedte is:$b$. LET OP; dus niet van de bodembreedte* $B$
+oid.
+
+$$
+\frac{\partial A}{\partial a} = b(a)
+$$
+
+Let hier op. Hier staat de algemeenheid; verandering van A agv
+verandering **a** is gelijk aan b maar verandering a agv verandering
+**s.**
+
+Als we dan teruggaan naar:
+
+$$
+\frac{\partial Q^2}{\partial s} \frac{1}{A} + Q^2 \frac{\partial \frac{1}{A}}{\partial s} = 2\frac{Q}{A}\frac{\partial Q}{\partial s}  -  \frac{Q^2}{A^2} \frac{\partial A}{\partial s}
+$$
+
+Dan kan je dus met de kettingregel $\frac{\partial A}{\partial s}$
+omschrijven: $$
+\frac{\partial A}{\partial s}=\frac{\partial A}{\partial a}\frac{\partial a}{\partial s}
+$$
+
+Daarna kunnen we de eerste term aan de rechterkant van = vervangen door
+$b(a)$ en krijgen we:
+
+$$
+\frac{\partial A}{\partial s}=b(a)\frac{\partial a}{\partial s}
+$$
+
+Nu verder met de bovenstaande momentum vergelijking:
+
+$$
+2\frac{Q}{A}\frac{\partial Q}{\partial s}  -  \frac{Q^2}{A^2} \frac{\partial A}{\partial s}
+$$
+
+wetende dat $\frac{Q}{A}=u$ en $\frac{\partial Q}{\partial s}=I$ en dit
+invullen in voorgaande:
+
+$$
+\frac{\partial Qu}{\partial s}=2\frac{Q}{A}\frac{\partial Q}{\partial s}  -  \frac{Q^2}{A^2} \frac{\partial A}{\partial s}=2uI -\frac{Q^2}{A^2}b(a)\frac{\partial a}{\partial s}
+$$
+
+Nu helemaal terug naar de momentum vergelijking:
+
+$$
+\frac{\partial Qu}{\partial s} 
+            = g\;A\;\Big( S_o - S_f - \frac{\partial a}{\partial s}\Big)\\
+\downarrow\\
+2uI -\frac{Q^2}{A^2}b(a)\frac{\partial a}{\partial s}=g\;A\;\Big( S_o - S_f - \frac{\partial a}{\partial s}\Big)\\
+\downarrow\\\frac{2uI}{gA} -\frac{Q^2}{gA^3}b(a)\frac{\partial a}{\partial s}= S_o - S_f - \frac{\partial a}{\partial s}\\
+\downarrow\\
+\frac{2uI}{gA}+\frac{\partial a}{\partial s} -\frac{Q^2}{gA^3}b(a)\frac{\partial a}{\partial s}= S_o - S_f\\
+\downarrow\\\frac{2uI}{gA}+\Big(1-Fr\Big)\frac{\partial a}{\partial s} = S_o - S_f\\
+\downarrow\\
+Si+\Big(1-Fr\Big)\frac{\partial a}{\partial s} = S_o - S_f\\
+\downarrow\\
+\frac{\partial a}{\partial s} = \frac{S_o - S_f-Si}{\Big(1-Fr\Big)}\\
+$$

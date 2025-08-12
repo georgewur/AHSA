@@ -1,0 +1,17 @@
+---
+title: "Vragen voor 'backwatercurve_play.R"
+output: html_notebook
+---
+
+# Vragen om mbv backwatercurve_play.R te beantwoorden/onderzoeken
+
+1.  Bepaal tot hoever het equilibrium peil reikt in het profiel bij de basiswaarden van de sliders? (ca. 1800 vanaf stuw)
+2.  Wat is het effect van de Manning coefficient of de waterpeilen? Wat zou een maatregel kunnen zijn om die coefficient in het veld aan te passen? (verhoogde n is slechte doorstroming en dus hoge peil. Schonen verlaagd de n)
+3.  Wat gebeurt er als de stuwbreedte flink versmald wordt (bijv. doordat er drijvend materiaal deels voor ligt) en wat dat voor effect hebben op de percelen naast de rivier(de rivier loopt vol alsof het een badkuip is, het stuwend effect gaat tot ca. 4500 m bovenstrooms met van ca. 5.4 m, percelen zullen mogelijk onderlopen)
+4.  Welke slider heeft de meeste en welke de minste impact op de waterdiepte bovensstrooms en boven de stuw als sliderwaarden afzonderlijk verdubbelt (en weer terugzet) ? (S0 grootst en sideslope minst)
+5.  Wat is de functie van een sideslope? Maw waarom zou je niet 1:1 wanden toepassen, een rechte bak dus (bodem stabiliteit, zand kalft bij 1:1 zeer snel af) afhankelijk van watersnelheid; erosie, ecohydroligisch; een flauw profiel maakt het mogelijk om pioniervegetatie langs de oevers te ontwikkelen. Eenvoudiger voor fauna (watervogels?) om uit het water te komen)
+6.  Wat is de impact van zijdelingse instroom op de peilen (van een equilibrium peil is nauwelijks/geen sprake meer)
+7.  Vergelijk eenzelfde afvoer met 50%Qup en 50%Q_Si met 100% Qup (bij 100% Qup is het peil in het hele profiel hoger)
+8.  .\@Paul, jij hebt vast veel meer vragen paraat. Paul: Een domme: kun je het verhang compenseren met de stuwkruin.
+
+(mijn basiswaarden heb ik wat aangepast Qup = 1.55, Q_SI = 0.0, S0 =0.001, n = 0.03, weir.b = 1.5, ow.b = 3, ow.m = 2)

@@ -1,0 +1,408 @@
+---
+title: "Transient unsaturated zone, deep groundwater table"
+author: "George Bier"
+date: "May, 2025"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Introduction
+
+This document describes the simulation of a transient unsaturated zone with a deep groundwater table. 
+The model will simulate groundwater flow through the unsaturated zone based on meteorological data of 2020 coming from the KNMI.
+A very similar document is set up for the simulation of the unsaturated zone with a shallow groundwater table.
+The learning outcomes of this part of the AHSA course are:
+
+*  Understand the requirement for a storage definition in terms of moisture content.
+*  Acknowledge the importance of a (very) fine nodal distribution in the upper part of the vadoze zone.
+*  Understand this requirement; the highly non-linear nature of the Richards equation.
+*  Understand the background of the very different recharge patterns between the locations Holterberg and lower regions of Twenthe.
+*  Know the different applied boundary conditions for the unsaturated zone.
+
+# Soil data
+
+The soil data comes from WENR (Wageningen Environmental Research) and is already implemented in an "Rdata" environment: "Staring.Rdata". The name comes from the former instutute "Staring Centrum" in Wageningen, which was the predecessor of WENR.
+The required data will be loaded in the following code chunk.
+
+```{r}
+# clear memory
+rm(list = ls())
+library(FVFE1D)
+source("Trans_functions.R") #some additional (saving, plotting) functions
+library(gifski) #for an animation
+#load the soil data
+load(file='Staring.Rdata')
+print(paste("Soil type: ",names(soil.set)," ",lapply(soil.set, function(x) x$name)))
+
+print(paste("Ksat values: ",lapply(soil.set, function(y) y$name),"  ",lapply(soil.set, function(x) x$ksat)))
+
+```
+
+
+# Domain
+
+Start https://www.broloket.nl/ondergrondgegevens in your browser and select a location on the Holterberg (region Almelo, Rijssen, Nijverdal), having a monitoring well (upside blue triangle). 
+From this estimate/determine the depth of the groundwater table. 
+With this, set the depth of the groundwater table with 0.0 m at the surface as reference level and - xxx CENTImeter at the groundwater table.
+
+
+# Internal flow flunction
+
+The equation describing the internal flux in the unsaturated zone strongly resembles the basic Darcy equation to simulate flow in the saturated zone. Most important differences are the hydraulic conductivity and the state.
+Now the state is $\psi$ instead of $H$. Both are related: $H = \psi + z$ where the $z$ is the datum/reference (in the Netherlands: "NAP").
+
+$$
+q=-k(\psi)\left [\frac{\partial \psi}{\partial z} + 1 \right]
+$$
+
+```{r}
+###description of the internal flux##############
+unsatdarcy.flux = function(z,psi,dpsidz)
+{
+  return(-soiltype$k.fun(psi)*(dpsidz+1))
+}
+```
+
+# Boundary conditions
+
+At the top and at the bottom (as always) of the model boundary conditions are required.
+At the top two types op conditions will be applied.
+
+*  The forcing coming from the precipitation of the KNMI data.
+*  The "Ponding" function, when infiltration capacity is exceeded. This will then result is surface runoff.
+
+## Precipitation
+
+As mentioned earlier, precipitation (and evapotranspiration), comes from the KNMI institute.
+The data will be loaded in the following code chunk.
+This forcing will not be added as a boundary condition but as a point flux in the upper node.
+In the file it reads:
+RH        = Etmaalsom van de neerslag (in 0.1 mm) (-1 voor <0.05 mm) / Daily precipitation amount (in 0.1 mm) (-1 for <0.05 mm)
+EV24      = Referentiegewasverdamping (Makkink) (in 0.1 mm) / Potential evapotranspiration (Makkink) (in 0.1 mm)
+
+
+
+```{r}
+meteo = read.table(file = "ppt_epot2020.txt", header = TRUE)
+names(meteo) = c("date","ppt","epot")
+#adjusting the unit to cm/day
+precip = meteo$ppt/100  
+evapot = meteo$epot/100
+#correcting for the -1 symbol and setting these values to 0
+precip[which(precip < 0)] = 0
+evapot[which(evapot < 0)] = 0
+
+plot(precip,type = "l", col = "skyblue", ylab = "cm/day", xlab = "days", main = "Precipitation and Evapotranspiration 2020")
+lines(evapot, col = "orange")
+legend("topright", legend = c("Evapot", "Precipitation"), fill = c("skyblue", "orange"))
+grid()
+```
+
+
+
+## Ponding
+When the amount of precipitation is larger than the soil can absorb, ponding (nl: plasvorming) will take place 
+To simulate this, an additional Cauchy type boundary condition will be applied to the upper node.
+
+$$
+ q_{ponding} = \frac{\psi_{surface}-0}{C_{top}}
+$$
+It will only be activated when the pressure at the surface (upper node) is larger than 0.0 cm
+
+```{r}
+c.top = 5 #days
+ponding = function(psi)
+{
+  if (psi > 0)
+  {
+    return(-psi/c.top)  
+  }else{
+    return(0)
+  }
+}
+```
+# Bottom boundary condition
+ 
+At the bottom of the vadoze zone different types of boundary conditions could be implemented. 
+Here we will consider two types:  
+
+*  A Cauchy type boundary condition, which is a function of the pressure head at the bottom node. This can simulate a changing deep groundwater table based on the fluctuations in the regional area.
+*  A Dirichlet boundary condition by simply assigning the watertable pressure ($\psi =0$) for the lower node.  
+
+
+$$
+Q_{drainge}= \frac{H_{drn.level} - H_{bottom}}{C}
+$$
+
+```{r}
+drn.resistance = 500 #unit is in days
+drn.level = -900 # cm below surface, a "pseudo" drainage level since there is no drainage system at the Holterberg
+drn.fun = function(psi)
+{
+  return((drn.level - (psi + bottom))/drn.resistance)
+}
+```
+
+
+# The transient simulation
+
+When the dynamics are introduced into the model times series of different aspects could be analyzed.
+Introducing dynamics means actually that changes in time are considered. This impacts in the first place the amount of water stored in the model: $\frac{\partial \theta}{\partial t}$.
+
+The basic equation to be solved (Richard's equation) is:
+$$
+\frac{\partial \theta(\psi)}{\partial t} = -k(\psi)\left [\frac{\partial \psi}{\partial z} + 1 \right]
+$$
+
+The moisture (storage) change over time (: $\frac{\partial \theta(\psi)}{\partial t}$) is implemented as a `spatial flux` of time and space
+Since we are calculating $\psi$ as the state of the model, we are going to use the `soiltype$theta.fun(psi)` function to determine the amount of moisture content based on the current pressure head ($\psi$)
+
+This can be implemented numerically as:
+
+$$
+Q_{storage} = \frac{\theta \left (\psi^{t+\Delta t}\right ) - \theta \left( \psi^t \right ) }{\Delta t}\Delta z
+$$
+The new/current pressure head is the one which is evaluated at the new time step: $\psi^{t+\Delta t}$ but since we also need to consider the previous pressure head $\psi^t$, we will save these pressure just before we start with a new time step and call this `psi.old`.  
+When more water is stored in the model, it means that less is available for flow. This means that a minus sign should be introduced. This could easily be accomplished by switching both pressure heads in the aforementioned equation.
+
+```{r}
+storage = function(z,state)
+{
+  storage = (soiltype$theta.fun(psi.old(z)) - soiltype$theta.fun(state))/delta.t
+}
+```
+
+Be aware the `storage` function will be multiplied with the nodal distance internally to come to the unit of L/T (cm/d).
+
+# Adding the vegetation to the model
+
+Evapotranspiration is an important environmental condition for processes near the soil surface, such as the development of vegetation. Evapotranspiration depends on:      
+
+*   The potential evapotranspiration rate, which is determined by weather conditions;    
+*   The rooting distribution of the vegetation;   
+*   The actual soil moisture content\pressure in the rooting zone.   
+
+The total *potential* evapotranspiration rate of the vegetation is determined by weather conditions and will be given.
+
+The rooting distribution may be described by a function `root.distr.fun(z)` which gives the fraction of roots present at each depth (giving 1 when integrated with depth). 
+The rooting depth for each vegetation type can be described in many ways. 
+Here, at this stage we will assume grass with 75% rooting in the first 20 cm
+and 25% till 110 cm below surface. (Just my guess).
+
+```{r}
+root.partition = c(0.0,-20.0,-20.01,-110.0,-110.01)
+root.rates.fractions = c(0.75/20,0.75/20,0.25/90,0.25/90,0.0)
+root.distr.fun = approxfun(root.partition,root.rates.fractions,rule = 2)
+plot(root.partition,root.distr.fun(root.partition), type = "o",
+   col = "green", lwd = 2, main = "Root distribution function",
+   ylab = "Fraction of the root distribution (-)", xlab = "Rooting depth (cm) rel. to surface level")
+grid()
+
+###check for the integral
+20*0.75/20 + 90*0.25/90
+z.root = seq(-109.5,-0.5,by = 1)
+sum(root.distr.fun(z.root))
+
+
+```
+
+
+
+The vegetation can only transpire optimally when there is sufficient moisture in the soil which is 'easily' available for the vegetation. The effect of soil moisture can be simulated with the so called Feddes (retired Prof. from WUR) function.  
+
+The code chunk below illustrates such a Feddes function. This function relates the root water uptake at a certain depth with the pressure (suction) at that depth. When the soil is too wet or too dry, plant transpiration and thus root uptake are reduced below their potential rates, and the Feddes reduction factor is smaller than 1. 
+
+```{r}
+options(scipen = 999) #avoid scientific notation (with E power) in the plot
+#Feddes.psiabs = c(0.1,100,1000,16000) #typical psi values to define Feddes function. Note these are absolute psi's due to the plot. NOT in the function
+Feddes.psiabs = c(0.1,100,1000,10000)#TEMP, for very dry conditions large Epot model gets stuck
+Feddes.red = c(0,1,1,0)
+Feddes.fun= approxfun(-Feddes.psiabs,Feddes.red,rule=2)
+plot(Feddes.psiabs,Feddes.fun(-Feddes.psiabs),type="l",lwd=3,xlim=rev(range(Feddes.psiabs)),log="x",ylab="Root uptake reduction",xlab="Suction (|psi|)")
+abline(v=Feddes.psiabs,col="red")
+text(1,0.9,"Too wet", col="red")
+text(300,0.7,"Optimal", col="red")
+text(5000,0.9,"Too dry",col="red")
+grid()
+```
+
+
+### Adding this spatial flux to the model
+
+The effect of the vegetation, toots extracting water from the soil for transpiration depending on the root distribution, suction ($\psi$) and the potential evapotranpsiration.
+
+Three aspects are considered:  
+
+1.  Rooting distribution `root.distr.fun`  
+2.  Feddes function `Feddes.fun`  
+3.  Potential evapotranspiration `Epot`
+
+The function to calculate this is : `Eact = root.distr.fun(z)*Feddes.fun(psi)*Epot`
+
+```{r}
+
+Eact = function(z,psi)
+{
+  return(-root.distr.fun(z) * Feddes.fun(psi) * Epot)
+}
+```
+
+
+
+# Model setup
+
+Here we will make use of the FVFE1D package, which most of used in the WANT course.
+
+## Chose the soil type
+
+The soil type is chosen based on the location of the monitoring well.
+
+```{r}
+names(soil.set)
+soiltype = soil.set$B5
+pF = seq(0.01,4.2,by=0.05)
+psi = -10^(pF)
+plot(soiltype$theta.fun(psi),log10(-psi),type="l",col="red",lwd = 3,
+     main = paste("Retention profile of",soiltype$name),
+     ylab="Pressure head (cm)",xlab="Water content at equilibrium")
+grid()
+plot(soiltype$k.fun(psi),log10(-psi),lwd = 3, type="l",col="red",
+     main = paste("K(psi) of soil:",soiltype$name),
+     ylab="Pressure head in pF",xlab="Hydraulic conductivity")
+grid()
+
+```
+
+## Chose the thickness of the model
+```{r}
+top = 0.0 # cm at surface
+bottom = -1000 # 10 below surface, as an example
+```
+
+## Nodal distribution
+
+The nodal distribution is set up in such a way that the upper part of the unsaturated zone has a very fine nodal distribution. The lower part  gradually becomes coarser.
+
+```{r}
+log_top = log10(0.1)
+log_bottom = log10(-bottom)
+log_z = seq(from = log_top, to = log_bottom,by = 0.1)
+nodes = -10^log_z
+nodes = c(0.0,nodes)
+bottom_roots = -200 # cm, depth of the root distribution
+upper_nodes = seq(from = top, to = bottom_roots, by = -1)
+log_top_roots = log10(-bottom_roots + 1)
+log_bottom = log10(-bottom)
+log_z_lower_nodes = seq(from = log_top_roots, to = log_bottom, by = 0.025)
+lower_nodes = -10^log_z_lower_nodes
+nodes = c(upper_nodes,lower_nodes)
+domain=c(bottom,top)
+plot(nodes,nodes,main = "Nodal distribution",xlab = "Depth (cm)", ylab = "Depth (cm)", col = "blue", pch = 19)
+grid()
+```
+
+
+
+
+
+```{r}
+Trans = newFLOW1D(domain = domain,systemfluxfunction = unsatdarcy.flux,name = "Transient model")
+#set.BC.fixedstate(model = Trans, where = "left", value = 0.0) # prescribed pressure head at the left side=bottom
+set.BC.fluxstate(model = Trans, where = "left", func = drn.fun) # drainage at the left side=bottom
+set.BC.fluxstate(model = Trans, where = "right", func = ponding) # ponding at the right side=top
+ppt = precip[1] # this variable is required to implement the point flux in the model
+add.pointflux(model = Trans, at = 0.0, value = "ppt", name = "precipitation") # precipitation at the top
+Epot = evapot[1] # this variable is required to calculate the actual evapotranspiration
+add.spatialflux(model = Trans, rate = Eact, name = "Evapotranspiration") # evapotranspiration at the top
+add.spatialflux(model = Trans, rate = storage, name = "Storage") # storage in the model
+set.discretisation(model = Trans, nodes = nodes, method = "FEquartic")
+
+# set the initial condition 
+#Psi.equi = approxfun(c(domain[1],domain[2]),c(domain[2],domain[1]))
+#do.initialize(Trans,Psi.equi)
+drn.psi.equi = approxfun(c(domain[1],domain[2]),c((drn.level - bottom),drn.level))
+do.initialize(model = Trans, init = drn.psi.equi) #initial condition for the psi
+psi.old = state.fun(Trans)
+# We want to avoid pressures to be too negative (<-1E-5)
+Psi.in.range = function(z,Psi) # it has 2 arguments; the position and the state. Set the min. value to pF4.2 not pF5
+{
+ # if(Psi<=-1*10^4.2) return(FALSE)
+  if(Psi <= -16000) return(FALSE) # also in the Feddes function -16000 which is 4.20412 and not 4.2
+   #if(Psi<=-1*10^5) return(FALSE)
+  else return(TRUE)
+}
+set.isacceptable(Trans,Psi.in.range) #the set.isacceptable function limits the possible values that the state can become
+summary(Trans)
+```
+
+# The transient simulation
+
+```{r animation.hook='gifski', message=FALSE}
+begin.time  = 1
+current.time = begin.time
+end.time = length(meteo$date)
+delta.t = 1 #day, i.e. the time stepping
+
+
+####containers to save intermediate results
+state.tmp = c()
+transp.tmp = c()
+moist.tmp = c()
+balance.tmp = c()
+wtable.tmp = c()
+
+##set the initial state to equilibrium
+do.initialize(Trans, init = drn.psi.equi)
+start.run.time = Sys.time()
+while(current.time <= end.time)
+{
+  ppt = precip[as.integer(current.time)]
+  Epot = evapot[as.integer(current.time)]
+  psi.old = state.fun(Trans)
+  solve.steps(Trans)#,verboselevel = 1)
+  
+  #save.data(Trans)
+  df.balance = dataframe.balance(Trans)
+  df.bound = dataframe.boundaries(Trans)
+  balance.tmp <<- rbind(balance.tmp,c(precip[current.time],evapot[current.time],
+                                      df.balance[2,3],df.balance[3,2],
+                                      df.balance[3,3],df.bound[1,4],df.bound[2,4]))
+  # cat(paste("day nr.:",current.time,"Epot :",Epot,"Eact :",df.balance[2,3], "ppt:",
+  #           ppt,"S2F",df.balance[3,2],"F2S",df.balance[3,3], "\n"))
+  current.time = current.time + delta.t 
+  ####plotting some stuff
+#  old.par = par(no.readonly=TRUE) #to save current plot settings and stuff
+#  layout = matrix(c(2,2),ncol = 2)#, byrow = TRUE)
+  #plot.roots(Trans)
+#  plot.theta(UnsatTrans)
+  plot.wtable(Trans,current.time)
+  calc.wtable(Trans)
+#  par = old.par
+  #####saving the results
+}
+end.run.time = Sys.time()
+
+
+
+```
+Plotting and saving the data
+
+```{r}
+cat(paste("simulation time is :",end.run.time - start.run.time))
+## to make dataframes and csv's from the saved data
+balance.res = data.frame(balance.tmp)
+time.series = seq(begin.time,current.time-1,by = delta.t)
+balance.res = cbind(time.series,balance.res)
+names(balance.res) = c("Daynr","Precip","Epot","Eact","Sto2flow","Flow2sto","Recharge","Ponding")
+plot.trans.balance()
+write.csv(x = balance.res, file = "TransBalanceDeep.csv")
+write.csv(cbind(time.series,state.tmp), file = "TransStateDeep.csv")
+plot(wtable.tmp,type = "o", col = "blue", lwd = 2,
+     main = "Water table depth in time", xlab = "time (days)", ylab = "depth (cm)")
+grid()
+
+```
+
+
+

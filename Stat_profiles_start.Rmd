@@ -1,0 +1,329 @@
+---
+title: "Stationary Profiles Unsaturated Zone"
+output:
+  html_notebook:
+    css: want_n.css
+    toc: true
+    number_sections: true
+  html_document:
+    css: want_n.css
+    toc: true
+    df_print: paged
+---
+
+# The Richards equation
+
+The Richards equation is a partial differential equation that describes the flow of water in unsaturated soils. Flow in the unsaturated zone is predominantly vertical so here we only consider flow in the $z$ direction equation.
+
+$$ \frac{\partial \theta}{\partial t} = -\frac{\partial q}{\partial z} - S\\ \frac{\partial \theta}{\partial t} = \frac{\partial}{\partial z} \left\{ K(\psi) \left ( \frac{\partial \psi}{\partial z} +1 \right) \right\} -S $$
+
+Where:
+
+$\theta : \text{moisture content (L/L)}$
+
+$q : \text{flux rate (L/T)}$
+
+$S : \text{source and or sinks (/T)}$
+
+$K : \text{hydraulic conductivity (L/T)}$
+
+$\psi : \text{pressure (L)}$
+
+## The Retention curves
+
+The moisture content and pressure head are closely related to each other. The retention curve is a plot of the moisture content as a function of the pressure head. The pressure head is negative in the unsaturated zone.
+
+Some preliminaries to clean the environment and load soil data
+
+```{r}
+#cleasing the workspace
+rm(list=ls())
+#loading some packages
+library(knitr)
+#preprogrammed soil data
+#loading the 
+load("Staring.RData")
+print(paste("Soil type: ",names(soil.set)," ",lapply(soil.set, function(x) x$name)))
+#kable(paste("Soil type: ",names(soil.set)," ",lapply(soil.set, function(x) x$name)))
+```
+
+Plotting the retention curve for a specific soil type, here B13; Loam.
+
+The first plot is based on the suction values (y-axis) vs. moisture content (x-axis).
+
+The second, more usual plot, is based on the pF vs. moisture content. De pF stands for the log10 of the pressure values in centimeters.
+
+So a pF of 2 means -100 cm pressure, pF=3 equals to -1000 cm pressure.
+
+```{r}
+
+#number of data points in pF range: 
+pF = seq(0.01,4.2,by=0.05)
+psi = -10^(pF)
+soil = soil.set$B13
+plot(soil$theta.fun(psi),psi,type="l",col="red",lwd = 3,
+     main = paste("Retention profile of",soil$name),
+     ylab="Pressure head (cm)",xlab="Water content at equilibrium")
+grid()
+plot(soil$theta.fun(psi),log10(-psi),lwd = 3, type="l",col="red",
+     main = paste("Retention profile of",soil$name),
+     ylab="Pressure head in pF",xlab="Water content at equilibrium")
+grid()
+
+# library(plotly)
+# p <- plot_ly(x = ~soil$k.fun(psi), y = ~log10(-psi), type = 'scatter', mode = 'lines', 
+#              line = list(color = 'red')) %>%
+#   layout(title = 'Hydraulic Conductivity vs Pressure Head',
+#          xaxis = list(title = 'Hydraulic conductivity'),
+#          yaxis = list(title = 'Pressure head'))
+# 
+# # Toon de plot
+# p
+
+
+```
+
+## The hydraulic conductivity
+
+As shown in the Richards equation, the hydraulic conductivity is a function of pressure($K(\psi)$), which is negative in the unsaturated zone. However, it can also be expressed in terms of moisture content ($K(\theta)$) with the aid of the retention curve $\theta(\psi)$. [^1]
+
+[^1]: Here we neglect effects of histeresis (soils turning from wet to dry do not describe the same moisture/pressure profiles as from soils turning dry from wet)
+
+```{r}
+## K as function of psi
+plot(soil$k.fun(psi),psi,type="l",lwd = 3,col="red",main = paste("K(psi) of soil:",soil$name),
+     ylab="Pressure head (cm)",xlab="Hydraulic conductivity")
+grid()
+plot(soil$k.fun(psi),log10(-psi),lwd = 3, type="l",col="red",
+     main = paste("K(psi) of soil:",soil$name),
+     ylab="Pressure head in pF",xlab="Hydraulic conductivity")
+grid()
+
+## K as function of theta 
+
+plot(soil$theta.fun(psi),soil$k.fun(psi),type = "l",lwd = 3,col="orange", main = paste("K(theta) of soil:",soil$name),
+     ylab ="Hydraulic conductivity (cm/d)",
+     xlab = "Moisture content (m/m)")
+grid()
+
+
+
+```
+
+## Comparing a few soils
+
+```{r}
+plot(soil.set$B13$theta.fun(psi),log10(-psi),type="l",col="red",lwd = 3,
+     xlim = c(0.01,1),main = "Retention profiles",
+     ylab="Pressure head (cm)",xlab="Water content at equilibrium")
+lines(soil.set$B11$theta.fun(psi),log10(-psi),lwd = 3, col = "green")
+lines(soil.set$O17$theta.fun(psi),log10(-psi), lwd = 3, col = "blue")
+lines(soil.set$B5$theta.fun(psi),log10(-psi), lwd =3 , col = "brown")
+grid()
+##adding a legend to the plot
+legend("topright", legend = c(soil.set$B13$name, soil.set$B11$name, soil.set$O17$name, soil.set$B5$name),
+       col = c("red", "green", "blue", "brown"), lwd = 3)
+```
+
+```{r}
+plot(soil.set$B13$k.fun(psi),log10(-psi),lwd = 3, type="l",col="red",
+     main = "Hydraulic conductivity of some soils",
+     xlim = c(0.0,soil.set$B5$ksat),
+     ylab="Pressure head in pF",xlab="Hydraulic conductivity")
+lines(soil.set$B11$k.fun(psi),log10(-psi),lwd = 3, col = "green")
+lines(soil.set$O17$k.fun(psi),log10(-psi), lwd = 3, col = "blue")
+lines(soil.set$B5$k.fun(psi),log10(-psi), lwd =3 , col = "brown")
+grid()
+##adding a legend to the plot
+legend("topright", legend = c(soil.set$B13$name, soil.set$B11$name, soil.set$O17$name, soil.set$B5$name),
+       col = c("red", "green", "blue", "brown"), lwd = 3)
+
+```
+
+# Stationary profiles
+
+Here we will focus on the general behavior of flow in the unsaturated zone under stationary conditions for situations with deep and shallow groundwater tables and with different flux rates.
+
+Since we only consider stationary flow, the time derivative is zero. The equation simplifies to:
+
+$$
+0 = \frac{\partial q}{\partial z} 
+$$
+
+And since this [*derivative*]{.underline} $\frac{\partial q}{\partial z}$ is, zero it means that the flux rate $q$, is now a constant. The equation (i.e. the Darcy Buckingham equation) becomes:
+
+$$
+q =- K(\psi) \left ( \frac{\partial \psi}{\partial z} +1 \right)
+$$
+
+Given a certain soil type, thickness and flux rate, the pressure profile and, from that, the moisture profile can be determined.
+
+### Flow direction
+
+Similar as with the ordinary Darcy equation, the minus sign indicates flow is opposite to the gradient direction. The physical interpretation of this is that flow is going towards the lowest pressure head. However, when calculating the derivative of the pressure head, this would result in a minus sign, turning the direction of flow.
+
+In addition it is customary, in vadoze zone hydrology, to define the $z$ direction positive upwards. This results thus in a positive flux when flow is upwards and negative downward.
+
+The following plot illustrates this;
+
+-   The dashed black line indicates equilibruim state, so no flow
+
+-   The red line illustrates a situation with a soil dryer than equilibrium so flow goes up (evaporation)
+
+-   The blue line illustrates a situation with a wetter soil, flow goes down, precipitation.
+
+```{r echo = FALSE}
+psi_dry = seq(0,-200, length.out = 20)
+psi_wet = seq(0,-100, length.out = 10)
+z_dry = seq(0,125,length.out = 20 )
+z_wet = seq(0,125,length.out = 10 )
+
+
+plot(-z_dry,z_dry, type = "l", lty = "dashed",lwd = 2,
+     ylab =  "z depth (cm)",xlab = "pressure psi (cm)" )
+grid()
+
+
+ lines(psi_dry,z_dry, col = "red",lwd = 2,lty = )
+ points(psi_dry,z_dry, col = "red")
+ lines(psi_wet,z_wet, col = "blue",lwd = 2)
+ points(psi_wet, z_wet, col = "blue")
+ abline(h = c(z_dry[11],z_dry[10]),col = "red",lty="dashed")
+ abline(v = c(psi_dry[11],psi_dry[10]),col ="red",lty="dashed")
+abline(v = c(psi_wet[6],psi_wet[5]),col ="blue",lty="dashed")
+abline(h = c(z_wet[6],z_wet[5]),col = "blue",lty="dashed")
+```
+
+The two examples of pressure gradients the blue and red line will result in a flow down ($-q$) and up ($q$). The numerical example data is shown below:
+
+```{r echo=FALSE}
+delta_psi_wet = psi_wet[5] - psi_wet[6]
+delta_z_wet = z_wet[5] - z_wet[6]
+delta_psi_dry = psi_dry[10] - psi_dry[11]
+delta_z_dry = z_dry[10] - z_dry[11]
+
+print(paste("delta psi dry:",psi_dry[10]," - ",psi_dry[11],'=',delta_psi_dry))
+print(paste("delta z dry:",z_dry[10], '-', z_dry[11], '=', delta_z_dry))
+print(paste('d_psi_dry/d_z_dry = ',delta_psi_dry/delta_z_dry))
+print(paste("-K*{",delta_psi_dry/delta_z_dry,"+1}; q=+/+ flow goes up"))
+
+print(paste("delta psi wet:",psi_wet[5]," - ",psi_wet[6],'=',delta_psi_wet))
+print(paste("delta z wet:",z_wet[5], '-', z_wet[6], '=', delta_z_wet))
+print(paste('d_psi_wet/d_z_wet = ',delta_psi_wet/delta_z_wet))
+print(paste("-K*{",delta_psi_wet/delta_z_wet,"+1}; q=-/- flow goes down"))
+```
+
+## Procedure
+
+1.  Define the soil type
+2.  Define the domain of the model
+3.  Define the boundary conditions
+4.  Solve the equation
+
+### Soil type
+
+Choose one of the soil types given in the `soil.set` object.
+
+Each soil type, within the `soil.set` contains several specifiek properties important for modeling flow in the unsaturated zone. As an example the properties, numbers, a name and functions, of a loamy sand `soil.set$B2`
+
+```{r}
+
+
+print(unlist(soil.set$B2))
+```
+
+### Domain
+
+Since we are interested in the effect of large and small unsaturated zones the domains reasonable sizes for large unsaturated zones are 4 - 25 m, and 0.5-2 m for small unsaturated zones. Large zones are located at ice pushed ridges and small ones in valleys close to a brook or river.
+
+### Boundary conditions
+
+On top of the domain, i.e. at the surface the flux rate will be given, a so called Neumann boundary condition. A positive value indicates an influx, coming from precipitation for example. A negative value indicates an outflux, for example evaporation (bij soil and roots). At the bottom of the domain the pressure head is given, a so called Dirichlet boundary condition. This is the pressure head of the groundwater table;$\psi = 0$.
+
+### Solve the equation
+
+Here we are going to apply an explicit scheme to calculate the pressure head (i.e. $\psi$) in the unsaturated zone. The differential in the (Darcy like) equation is now approximated by a finite differences:
+
+$$
+\frac{\partial \psi}{\partial z} \approx \frac{\psi_{z}-\psi_{z-\Delta z}}{\Delta z}
+$$
+
+::: question
+Rewrite the Darcy alike question into a finite difference equation that calculates the pressure head at depth $z$, based on all the other terms.
+:::
+
+# Implementation
+
+Since the retetention curves are quite non-linear it is practical to have not too large steps ($\Delta z$) in the domain. Start with $\Delta z= 1 cm$
+
+It is custom in the vadoze zone hydrology to use centimeters for the spatial scale. So the flux rate is given in cm/day. The hydraulic conductivity is given in cm/day. The pressure head is given in cm.
+
+::::: question
+Add the explicit scheme (at the xxxxxxxxxxxxxxxx) to calculate the pressure head in the unsaturated zone.
+
+```{r eval = FALSE}
+#defining the soil type
+#soil = soil.set$B13
+soil = soil.set$O2
+soil_name = soil$name
+
+#DEFINING THE FLOW DOMAIN
+#BE AWARE Z=0 is at the groundwater table Z=Duns is at the surface
+#Z-direction is positive upwards
+dz = 1 #cm small steps are required
+Duns = 1500 # Thickness of the usaturated zone
+psi = seq(0,Duns,by=dz) #a vector for psi profile cm
+z = psi # a vector for the depth
+
+###BOUNDARY CONDITIONS
+#at the groundwater table the pressure head psi is 0.0
+psi[1] = 0.0
+#at the surface the flux rate is given
+q = -0.01 #cm/day
+
+###CALCULATING THE PRESSURE HEADS with an explicit scheme
+
+for (i in 2:length(psi)){
+  
+    psi[i] = xxxxxxxxxxxxxxxxxxxxxxx
+  
+}
+
+###PLOTTING THE RESULTS
+oldpar = par(no.readonly = TRUE)
+
+par(mfrow=c(1,2)) #this creates two plots next to each other
+
+plot(-z,z,type= "l",lty= "dashed",col="blue",main = paste(soil_name,"; q = ",q,"cm/day"),
+     ylab="Depth (cm)",xlab="Pressure head (psi in cm)",xlim=range(psi))
+lines(psi,z,type="l",lwd = 3,col="red")
+grid()
+
+range_theta = c(soil$theta.res,soil$theta.sat)
+plot(soil$theta.fun(psi),z,type="l",lwd = 3,col="red",
+     ylab="Depth (cm)",xlab="Water content",xlim=range_theta)
+lines(soil$theta.fun(-z),z,lty="dashed",col="blue")
+grid()
+par(oldpar)
+```
+
+Checking the flux rate.
+
+Since we now have calculated the $\frac{\Delta \psi}{\Delta z}$ , we can easily calculate back the flux rate $q$.
+
+::: question
+Calculate the flux rate in the unsaturated zone.
+
+TIP: use the " diff " function to determine the pressure gradient in the profile TIP2: you may also check the flux rate at some locations, e.g. on top, half-way at the bottom
+:::
+
+::: question
+Run this model with B1 (Non-loamy sand), a thickness `Duns` of -1500 cm and a flux rate of 0.01 cm/day.
+
+1.  What is the moisture content in de upper part of the unsaturated zone?
+
+2.  What is the hydraulic conductivity for this moisture content?
+
+3.  Can you argue that the $K(\theta)$ is equal to $q$?
+:::
+:::::
