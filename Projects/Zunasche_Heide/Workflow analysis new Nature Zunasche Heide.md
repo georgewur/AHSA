@@ -35,7 +35,7 @@ editor_options:
 2.  Convert the layer data of the regional model to scatter sets (as in
     the tutorial)
 
-3.  Load the Zunasche Heide shape file ("Zunasche heide.shp")
+3.  Load the Zunasche Heide shape file ("Zunasche heide.shp").
 
 4.  Create a new coverage with "Specified heads CHD" and "Use to define
     model boundary (active area) checked
@@ -155,4 +155,7 @@ w.r.t. the new surface elevation.
 For this purpose the altered surface elevations of the Zunasche heide is
 already prepaired.
 
-Load the raster "elevation_wierden_zh_40.tif" into GMS
+-   Load the raster "elevation_wierden_zh_40.tif" into GMS
+
+-   Right click on these elevations and selectMap these elevations to
+    the modflow model
