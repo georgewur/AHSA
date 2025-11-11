@@ -93,10 +93,10 @@ website](https://aquaveo.com/software/gms/learning-tutorials)
     of layer 1 accordingly. Use the "elevation_wierden_zh_40.tif" for
     this.
 
-2.  Rise the drain stage to the new surface elevation in the Zunasche
+2.  Raise the drain stage to the new surface elevation in the Zunasche
     heide
 
-3.  Rise the drainage stage to 50cm below surface in the grasslands
+3.  Raise the drainage stage to 50cm below surface in the grasslands
     surrounding the Zunasche heide.
 
 Analyse the effects on groundwater table and flow budgets of the
