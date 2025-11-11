@@ -36,11 +36,14 @@ Restoration measures have focused on reinforcing this hydrology by:
 
 -   removing part of the topsoil containing many nutrients
 
-# Objective:
+# Research Question:
+
+Have the implemented hydrological measures been sufficient to restore
+the original seepage flow and high groundwater levels?
+
+# Approach:
 
 Your current model does not contain these measures yet.
-
-# Tasks:
 
 -   Create a new model based on your current version of the Wierden
     area.
@@ -113,7 +116,7 @@ Nature Zunasche heide.html"
 Wikipedia](https://nl.wikipedia.org/wiki/Grondwatertrap)
 
 | **GVG (cm –mv)** | **Grondwaterklasse** | **Ecologische betekenis / mogelijke ecotopen** |
-|----|----|----|
+|------------------------|------------------------|------------------------|
 | 0 – 25 | Zeer nat | Moeras, trilveen, zeggevegetaties |
 | 25 – 50 | Nat | Dotterbloemhooiland, vochtige graslanden |
 | 50 – 80 | Vochtig | Kamgrasland, blauwgrasland, vochtige heide |
@@ -121,7 +124,7 @@ Wikipedia](https://nl.wikipedia.org/wiki/Grondwatertrap)
 | \> 120 | Droog | Zandverstuiving, droge heide, droge bossen |
 
 | **GVG (cm below surface)** | **Groundwater class** | **Ecological meaning / possible ecotopes** |
-|----|----|----|
+|------------------------|------------------------|------------------------|
 | 0 – 25 | Very wet | Marsh, quaking bog, sedge communities |
 | 25 – 50 | Wet | Cuckoo flower meadows, wet grasslands |
 | 50 – 80 | Moist | Meadow fescue grassland, bluegrass meadow, moist heath |
