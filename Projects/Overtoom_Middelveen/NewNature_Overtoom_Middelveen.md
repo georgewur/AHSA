@@ -147,8 +147,8 @@ website](https://aquaveo.com/software/gms/learning-tutorials)
 3.  Raise the drainage stage to 50cm below surface in the grasslands
     surrounding the Zunasche heide.
 
-4.  Determine which "grondwatertrap" is realised after each undertaken
-    measure.
+4.  Determine which "grondwatertrap" (see Helpful) is realised after
+    each undertaken measure.
 
 ## Workflow
 

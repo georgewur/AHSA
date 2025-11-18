@@ -99,8 +99,8 @@ website](https://aquaveo.com/software/gms/learning-tutorials)
 3.  Raise the drainage stage to 50cm below surface in the grasslands
     surrounding the Zunasche heide.
 
-Analyse the effects on groundwater table and flow budgets of the
-Zunasche Heide for each of the above-mentioned measures.
+Analyse the effects on the groundwater table and flow budgets of the
+Zunasche Heide for each of the measures mentioned above.
 
 Determine which "grondwatertrap" is realised after each undertaken
 measure.
@@ -116,7 +116,7 @@ Nature Zunasche heide.html"
 Wikipedia](https://nl.wikipedia.org/wiki/Grondwatertrap)
 
 | **GVG (cm –mv)** | **Grondwaterklasse** | **Ecologische betekenis / mogelijke ecotopen** |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | 0 – 25 | Zeer nat | Moeras, trilveen, zeggevegetaties |
 | 25 – 50 | Nat | Dotterbloemhooiland, vochtige graslanden |
 | 50 – 80 | Vochtig | Kamgrasland, blauwgrasland, vochtige heide |
@@ -124,7 +124,7 @@ Wikipedia](https://nl.wikipedia.org/wiki/Grondwatertrap)
 | \> 120 | Droog | Zandverstuiving, droge heide, droge bossen |
 
 | **GVG (cm below surface)** | **Groundwater class** | **Ecological meaning / possible ecotopes** |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | 0 – 25 | Very wet | Marsh, quaking bog, sedge communities |
 | 25 – 50 | Wet | Cuckoo flower meadows, wet grasslands |
 | 50 – 80 | Moist | Meadow fescue grassland, bluegrass meadow, moist heath |

@@ -192,13 +192,15 @@ removed. Here, we used diffuse drainage systems, not assigning actual
 drain locations and depths to the model. To mimic the removal of the
 drains the drain stage of grasslands (80 cm below surface) will be set
 to the new surface elevation which coincides with the raster files
-"elevation_40.tif" and "elevation_wierden_zh_40.tif".
+"elevation_40.tif" and "elevation_wierden_zh_40.tif". The diffuse
+drainage resistance will also be replaced with a resistance of 50 days,
+mimicking resistance to predominantly vertical flow.
 
 -   Create a new drain coverage in GMS for only the Zunasche heide
 
 -   Assign one of the mentioned rasters to this coverage
 
--   Map all drainage related coverage to the model
+-   Map all drainage related coverages to the model
 
 -   Check (e.g. by looking at the drain symbols, a green dot by default)
     if all drain coverages are mapped to the model.
