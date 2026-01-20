@@ -44,77 +44,93 @@ checked in the coverage where all polygons (whole domain of the model,
 Wierdense veld, Mokkelengoor), arcs (Regge) and points (Vitens' wells)
 should be checked.
 
-[*dd 2-12-25 I think only refinement is ok, since this ugrid must be a
-2dugrid. this means that only grid properties are assigned to the ugrid.
-Later on a 3dugrid is created based on this 2dugrid with local
-refinements and the rasters of the layer elevations in the
-subsoil*]{.smallcaps}
-
 The general set up of this coverage would then be:
 
 ![coverage setup Ugrid Wierden model with local
 refinements](images/coverage_setup_UGrid_refinement.png)
 
+After creating the new GMS-coverage, you can use the "copy to coverage"
+to create a copy of the domain and nature reserve polygons and the Regge
+arcs to the new coverage. To avoid confusion you can remove all
+hydroligal features (fixed head, river stage, well rate) from the
+points, arcs and polygons, since they are not used during the generation
+of the 2DUgrid.
+
+You could also use the original shape files for the nature reserves and
+the Regge.
+
+### Nature reserve polygons
+
 -   Be sure that the polygons are all polygons and not just connected
     arcs
 
 The attribute table for the selected polygons should look like this:
-(*well... layer range is not required)*
 
-![polygon refinement](images/refinement_polygons.png)
+![polygon refinement for nature
+reserves](images/refinement_polygons_nature.png)
 
-The actual base size can be altered. Note ID 4 has no name but is the
-polygon of the whole domain.
+Although the whole model domain requires a nodal distance, it is not
+necessary to set this here. During the step to map this coverage to the
+2DUgrid, the general nodal distance in X and Y can be set for the
+domain.
 
-The Regge (the only multi arc) should have similar refinement set.
-Actual refinement can be altered.
+The actual base size can be altered. Note that when using
+Quadtree/Octree the nodal distance reduces with 50% during each
+refinement step, ending close to the chosen "Base size". For example, if
+your domain has a nodal distance of 250m the first refinement step
+creates 125m cells, followed by about 60\~65, \~30, etc.
+
+### Open water arcs
+
+It is suggested to use a similar refinement for the Regge. Not that the
+Regge contains an arc for every reach (from weir to weir).
 
 ![Refinement Regge arcs](images/refinement_Regge_arcs.png)
 
-Finally the nodes where the wells are located will receive a grid
+### Well points
+
+Finally, the nodes where the wells are located will receive a grid
 refinement.
 
 ![Refinement at wells](images/refinement_wells.png)
 
-Note that, in this case, seem to have well type extraction rate and well
-screen "active" Forgot the uncheck wells but somehow at this stage it
-doesn't matter..
+The Base size is defines the nodal distance/grid size at the well. Since
+we are using Quadtree/Octree the refinement steps are always 50% of the
+previous grid size, meaning that Bias (the fraction of size growth 1.1
+means 10%) and Max size are not used (*as far as I know).* When
+"Voronoi" type of cells are used these do play a role.
+
+## Mapping the refinement to a 2DUgrid
 
 Select the Grid Frame, fit it to the active coverage (i.e. the coverage
 with the domain and all the refinements and select UGrid
 
 ![Ugrid selection](images/Ugrid_selection.png)
 
-Set the following window should appear. Use the same settings.
+Be sure to set a 2D grid at "Dimension" and "UGrid type" to
+Quadtree/Octree. For cell size, you may use 250 or 200.
 
 ![Settings map to ugrid](images/map2Ugrid.png)
 
-This should result in the same refinements in each later for points
-(wells), Arc's (Regge), Arc/poly -\> nature reserves and for the whole
-domain, here 247m. ~~Be sure to map 5 cells, which are 5 layers.~~ Since
-we have only 3 formations we will first create a Ugrid with 3 layers.
-Later on, we can split layers.
+The resulting 2DUgrid should be similar as shown in the following clip:
 
-This result in the following Ugrid:
-
-![Ugrid of the Wierden model with various
-refinements](images/UGrid_mf6_Wierden.png)
+![Resulting refined 2D Ugrid](images/resulting_refinede_2DUgrid.png)
 
 # Creating a new MODFLOW6 simulation
 
-To set up a new modflow 6 simulation several steps need to be taken;
+Having the 2DUgrid created, the following steps of setting up a modflow6
+model can now be carried out
+
+To set up a new modflow 6 simulation several major steps need to be
+taken;
 
 1.  Setting up a new modflow6 simulation
 
-    1.  Check all the required packages. Be aware that "IBOUND" is not
-        available so "CHD" should be used instead
+2.  Assigning the layer elevations to the 3D_Ugrid
 
-2.  Assigning the layer elevations to the Ugrid layers
+3.  Assigning the package data to the model (CHD, DRN, RIV, WEL, RCH)
 
-3.  Assigning the all (GMS) coverage data to the model (CHD, DRN, RIV,
-    WEL, RCH,..)
-
-4.  Run this new modflow6 model
+4.  Save, Check and Run this new modflow6 model
 
 5.  Analyse the results
 
@@ -128,53 +144,79 @@ To set up a new modflow 6 simulation several steps need to be taken;
     window and selection "New Simulation"![selecting for a new m6
     simulation](images/new_simulation_mf6.png)
 
-2.  Select the appropriate packages
+    1.  Select the appropriate 2DUgrid and packages:![Selecte 2DUgrid
+        and packages for
+        mf6](images/2DUgrid_packages_mf6.png){width="700"} This results
+        in the appropriate data sets to fill the modflow 6 model with
+        the Wierden coverage data.
 
 ![mf6 files and
 packages](images/mf6simulation_selected_packages_files.png)
 
-## Assigning the layer elevations to the Ugrid layers
+After assigning the layer elevations to the model, these packages will
+be loaded with the GMS-coverages created during the basic Wierden model.
 
-Basic approach is to use 2D scatter data or rasters to interpolate these
-elevations to the Ugrid layers.
+## Assigning the layer elevations to the 3DUgrid layers
 
-This approach is based on 2D scatter data which I created from the
-elevation TIN's which originate from the raster files (\*.tif files).
-Creating the 2D data sets from TIN's is quite simple; Select each TIN,
-right-click and select "Convert To -\> 2D Scatter Points;
+Although the title above mentions "layer", with the use of an
+[U]{.underline}nstructured grid; UGrid it is not mandatory to have the
+same number and aligned layers as with the original structured grid used
+in modflow_nwt or older.
 
-![Convert TIN-data to 2D scatter
-points](images/TIN_convert_2_2Dscatter_points.png)
+In the Wierden case, it is now possible to have the ice pushed ridge
+elevations (Holterberg) assigned to local grid cells/volumes only!
 
-Next, the 2D scatter points need to be interpolated to the Ugrid. For
-interpolation I use simply "linear";
+Make sure that the following raster files are loaded into GMS:
 
-![Interpolate 2D scatter to Ugrid
-(layers)](images/2Dscatter_Interpolate_2_Ugrid.png)
+-   surface_elevation.tif
 
-This results in the following elevations to the Ugrid;
+-   top_ridge.tif
 
-![Elevations to Ugrid](images/elevations_2_ugrid.png)
+-   bot_ridge.tif
 
-### Assigning the ugrid elevations 2 tops and bottoms
+-   top_imp_layer_5.tif
 
-The elevations assigned to the ugrid are now ready to be mapped to the
-layer (3) elevations of the modflow6 model.
+-   geohydrological_base.tif
 
-The following approach should do the trick;
+The fourth elevation raster, denotes the boundary between the upper and
+lower aquifer. These data come from the Landelijk Hydrologisch Model
+(LHM4.3) which is a national groundwater model of the Netherlands and
+contains 8 different aquifer layers. For this course these layers are
+aggregated to two aquifers.
 
-1.  Double click on the DISV (Vertex Grid Discretization) data set
+1.  Select the "3D Ugrid from Raster" tool (in the Unstructured grid
+    folder) from the Toolbox;![Toolbox containing 3D Ugrid from Raster
+    tool](images/toolbox.png) and click on "run"
 
-2.  Start with the Top elevations (already selected and dimmed) of the
-    upper layer of the ugrid; ![Dataset to ugrid layer
-    (top)](images/Dataset_2_Ugrid_layer.png)
+2.  Select the 2D Ugrid with the refinements (its probably the only
+    2DUgrid)
 
-3.  Select the surface elevations dataset ![Select surface elevations
-    for top layer
-    ugrid](images/Select_surface_elevations_wierden_for_top1.png)
+3.  Add 5 raster files locations the the "plus" sign button
 
-4.  Select the bottom elevation set for ugrid layer 1 ![assign bottom
-    elevations to ugrid layer
-    1](images/bottom_elevation_ugrid-layer1.png)
+4.  Select the individual raster in the order from bottom (the base of
+    the model) to the top (surface elevation)
 
-5.  
+5.  Set the minimal thickness to : 0.0 Which makes that the ice pushed
+    ridge elevation will only appear locally near e.g. the Holterberg
+
+6.  Give a name for this 3DUgrid /modflow 6 "flow" simulation
+
+The final settings in the tool should look like the clip below:
+
+![The 3DUgrid from rasters tool](images/3DUgrid_from_rasters.png)
+
+This should result in the following stratigraphical build-up, red: upper
+aquifer, blue: ice pushed rigdes, green: lower aquifer:
+
+![The final model "layering"](images/3DUgrid_layers.png)
+
+The clip below clearly shows that the ice pushed ridge formation is only
+locally present, not having layer(s) continuing the model boundaries;
+
+![Position and dimensions of the ice pushed ridges in the
+model](images/3DUgrid_ridges.png)
+
+In the clip above, it is clearly visible that the ice pushed ridges are
+only locally present.
+
+## Assigning the package data to the model (CHD, DRN, RIV, WEL, RCH)
