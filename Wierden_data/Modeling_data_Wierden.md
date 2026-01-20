@@ -362,7 +362,7 @@ five given in the table below. This table includes the related
 watermanagement properties.
 
 | Landuse type    | Drainage resistance (days) | Drain stage (cm. below surface) |
-|------------------|-------------------------|-----------------------------|
+|-----------------|----------------------------|---------------------------------|
 | Grasslands      | 150                        | 80                              |
 | Cropland        | 250                        | 100                             |
 | Urban area      | 600                        | 120                             |
@@ -422,7 +422,7 @@ The clip below illustrates the use of the (digital) legger:
 ![Use of the legger/register for retrieving open water
 data](images/Legger_use.png)
 
-##  Recharge stationary and transient
+## Recharge stationary and transient
 
 Different approaches can be used to calculate the recharge rate entering
 the subsoil. One of the simplest is calculating the Potential
@@ -431,7 +431,10 @@ $E_{ref}$ is the Reference evapotranspiration which comes from a
 meteorological station (Twenthe; [weather data from
 Twenthe](https://www.knmi.nl/klimaat-viewer/grafieken-tabellen/klimaattabellen-per-station/twenthe/klimaattabel_twente_1991-2020)
 ) and $f_{crop}$ stands for crop factors and depends obviously on the
-land use type (and season).
+land use type (and season). The daily precipitation and reference
+evapotranspiration of this station can directly downloaded from this
+url: [link to daily meteo
+data](https://daggegevens.knmi.nl/klimatologie/daggegevens)
 
 A more advanced procedure is used in LHM4.3 in which the METASWAP
 component calculates the actual recharge depending on soil properties,
@@ -454,13 +457,87 @@ play an important role in calculating the recharge.
 
 For the transient recharge, three different recharge time series were
 calculated based on an R-script containing soil properties for the
-unsaturated and saturated zone, time series for precipitation en
+unsaturated and saturated zone, time series for precipitation and
 reference evapotranspiration. At three locations in an imaginary
 cross-section from the Holterberg towards the Regge, flow was calculated
-in the unsaturated zone (Richards) and saturated zone (Darcy). The net
-result used in this course is the recharge for higher regions (forest),
-shallow regions (grass) and recharge for urbanized areas. Since the
-output also consists of moisture contents in each profile, the average
-storage coefficient (specific yield, $S_y$ can also be determined. To
-distinguish higher and lower zones, a more or less arbitrary groundwater
-table is chosen of 4.0 m below surface.
+in the unsaturated zone (Richards) and saturated zone (Darcy). The
+following clip illustrates this model:
+
+![illustration of a cross section simulating saturated and unsaturated
+zone flow](images/transient_cross_section.png)
+
+The net result used in this course is the recharge for higher regions
+(forest), shallow regions (grass) and recharge for urbanized areas.
+Since the output also consists of time series of moisture contents in
+each profile, the average storage coefficient (specific yield, $S_y$)
+can also be determined. For this, the saturated moisture content is
+subtracted from the current mean moisture content of the whole
+unsaturated zone; $S_y(t)=\theta_{sat}-\frac{1}{Z}\int\theta(t) dz$
+
+To distinguish higher and lower zones, a more or less arbitrary
+groundwater table is chosen of 4.0 m below surface.
+
+The simulated and aggregate 10-daily recharge for the different zone is
+shown in the following clip of time series.
+
+![Recharge of different zone and precipitation time series, right axis
+indicate precipitation rate in cm/d](images/10_daily_rch_per_zone.png)
+
+These time series were simulated with a really old set of R-scripts
+making use of the very first versions of the FVFE1D package, which was
+not even a package then.
+
+The R-scripts are:
+
+-   general_cross_section.R
+
+-   sat_cross_section.R
+
+-   unsat_cross_section.R
+
+-   flow1D_16_10_12.R (the predecessor of FVFE1D package)
+
+To avoid cumbersome reprogramming of these R codes, the scripts are
+adjusted for the minimum. Only the meteorological data is adjusted to
+recent time series and the time step is set to 1 day instead of 1/2 day.
+
+Moreover another version of general_cross_section.R exists which
+calculates the storage coefficients based on
+$S_y(t)=\theta_{sat}-\frac{1}{Z}\int\theta(t) dz$ for each time step.
+
+This is not included in the used general_cross_section.R. However, these
+coefficients, on average, will not change that much based on the meteo
+data of 1985-1995. Therefor the "S-data.csv" will still be used for the
+practical to simulate transient conditions. The clip below illustrates
+these storage coefficient time serie of the three unsat zones in the
+transect.
+
+![Sy time series for the three zones during
+1985-1995](images/Sy_time_series_85-95.png)
+
+With:
+
+| statistic          | shallow    | medium     | deep       |
+|--------------------|------------|------------|------------|
+| Average            | 0.06409424 | 0.03894879 | 0.23819330 |
+| Standard deviation | 0.00592662 | 0.02467677 | 0.0111490  |
+
+: Average and standard deviation Sy per zone
+
+Be aware that in GMS the Sy data requires a GMS-coverage for Sy only but
+for all layers and that the Recharge requires a seperate coverage for
+only the upper layer.
+
+Moreover, if a warning appears (after mapping Sy and Recharge) that Sy
+and Ss are 0.0 for the materials (the formation), the "use data arrays"
+should be checked instead of the material ID in the UPW setup.
+
+The Ss could be set to e.g. 0.001 for all cells.
+
+### Pitfalls switching to transient
+
+Be aware that the simulation is transient now, meaning that:
+
+-   stationary observations (heads) should be removed from modflow
+
+-   starting heads should be set to the stationary heads
