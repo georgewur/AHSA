@@ -225,7 +225,97 @@ geohydrological-base
 
         Now the ice-pushed ridge formation is extended way too much.
 
-        **MODFLOW 6**
+#### Creating solids with (dummy) boreholes and cross-sections
+
+To improve the solids which should include the ice pushed ridges but not
+extended in the whole domain **and** distinguishing the upper and lower
+at the "top_impermeable_layer_5" which coincides the bottom of the ice
+pushed ridge, boreholes created in QGIS(3,40) were created and exported
+to a csv file. Two different sets were created in QGIS and with an R
+script rewritten to the GMS boreholes format:
+
+1.  borehole.txt
+
+2.  borehole_ice_ridges.txt
+
+Both borehole files we loaded into GMS (as "borehole data). Next step is
+to "auto-create blank cross sections" and from that "auto-fill cross
+sections" :
+
+![create and fill cross sections from (dummy) borehole
+data](images/create_fill_cross_sections.png)
+
+This take quite a while to build but finally the following result
+appears;
+
+![filled cross sections with upper aquifer, local ice pushed ridges and
+the lower aquifer](images/filled_cross_sections_wierden.png)
+
+Now boreholes and cross-sections are available as well, the new solids
+based on:
+
+-   TIN's
+
+    -   surface
+
+    -   top ridge
+
+    -   bot ridge
+
+    -   top imp_lyr5
+
+    -   base
+
+-   Boreholes and cross-sections auto-created and auto-filled
+
+![new solids wierden area using elevation TIN's and
+boreholes/cross-sections](images/New_solids_based_on_TIN_and_borholes_x_sections.png)
+
+Although the ice pushed ridges (red) seem to do OK now, it's clearly
+visible that the upper aquifer is way too thin and the lower one almost
+the total thickness
+
+So, it's still quite tricky to create solids showing local ice pushed
+ridges AND a reasonable distribution of the upper and lower aquifer.
+
+Again having a closer look at the cross sections and reconsidering the
+order of formations, the current set looks like the following. This case
+not snapped to the surface elevations but that will take place during
+the solid creation.
+
+![Latest set of boreholes and cross
+sections](images/filled_cross_sections_wierden_dec_25.png)
+
+What seems to work best now (d.d. 9-12-25) is the following:
+
+1.  Select boreholes to create solids from there:![Base solids
+    predominantly on the boreholes and
+    x-sections](images/boreholes2solids_selection.png){width="180"}
+
+2.  Now, [only]{.underline} select the boreholes and cross-section data
+    to create the horizon solids:![Boreholes and x-sections only for
+    horizon
+    creation](images/boreholes2solids_useonly_boreholes-xsections_for_horizons.png){width="350"}
+
+3.  Use the surface TIN as reference TIN and for the top elevation of
+    the solids. For the bottom elevations of the solids the boreholes
+    and cross-sections are used:![Selection of the Horizons for solid
+    creation now based mainly on boreholes and
+    x-sections](images/boreholes2solids_surface_reference_and_top_solids_bot_solids_boreh_x-sections.png)
+
+4.  The last step selects the interpolation method, no minimal
+    thickness:![Last step of solids
+    creation](images/boreholes2solids_solid_creation.png)
+
+These steps and data finally results a reasonable and better set of
+solids compared to the first sets of about 2014-2015.
+
+![Solids based on boreholes, cross sections and the surface elevation
+TIN as reference and top of the solids. Bottom of the solids is based on
+the bottom of the
+boreholes/x-sections](images/solids_boreh_xsections_surface_tin_reference_and_top_solids_bot_solids_top_borh-x-sections.png)
+
+**MODFLOW 6**
 
 Since modflow 6 is based on UGRIDs, it is not required to have model
 layers continuous in the model domain.
@@ -249,4 +339,16 @@ As a consequence the Holterberg and south-eastern ridges from Holterberg
 need anisotropical parameters for the model layers where they reside.
 
 For the usual set up of a groundwater model in the Wierden we will
-simply the effect of anisotropical features to a simple resistance.
+simply the effect of anisotropical features to a simple resistance or
+better a relatively low hydraulic conductivity of 0.5 m/d.
+
+The upper aquifer (red in the upper clip) is based on the upper 4 LHM4.3
+layers. The lower aquifer for the other 4 layers of LHM4.3:
+
+|             |                   |                      |
+|-------------|-------------------|----------------------|
+| **Aquifer** | **K_mean (m/d)**  | **K_std. dev (m/d)** |
+| upper       | 26.4              | 13.23                |
+| lower       | 16.54             | 17.14                |
+
+: Hydraulic Conductivity aquifers
