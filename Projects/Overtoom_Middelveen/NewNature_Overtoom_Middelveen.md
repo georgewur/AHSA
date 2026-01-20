@@ -160,8 +160,14 @@ Nature Overtoom-Middelveen.html"
 [Grondwatertrap -
 Wikipedia](https://nl.wikipedia.org/wiki/Grondwatertrap)
 
+Groundwatertrappen (Dutch) can best best be described as *groundwater
+regime (classes)* and is based on a classificatoin of the average
+groundwater depth (w.r.t. the surface level) in spring **GVG**, the
+three lowest **GLG** and the three highest **GHG** groundwater depths
+during 8 years.
+
 | **GVG (cm –mv)** | **Grondwaterklasse** | **Ecologische betekenis / mogelijke ecotopen** |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | 0 – 25 | Zeer nat | Moeras, trilveen, zeggevegetaties |
 | 25 – 50 | Nat | Dotterbloemhooiland, vochtige graslanden |
 | 50 – 80 | Vochtig | Kamgrasland, blauwgrasland, vochtige heide |
@@ -169,7 +175,7 @@ Wikipedia](https://nl.wikipedia.org/wiki/Grondwatertrap)
 | \> 120 | Droog | Zandverstuiving, droge heide, droge bossen |
 
 | **GVG (cm below surface)** | **Groundwater class** | **Ecological meaning / possible ecotopes** |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | 0 – 25 | Very wet | Marsh, quaking bog, sedge communities |
 | 25 – 50 | Wet | Cuckoo flower meadows, wet grasslands |
 | 50 – 80 | Moist | Meadow fescue grassland, bluegrass meadow, moist heath |
