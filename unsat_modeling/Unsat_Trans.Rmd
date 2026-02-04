@@ -1,0 +1,707 @@
+---
+title: "Transient Simulations Unsaturated Zone"
+author: "G. Bier"
+date: "April, 2025"
+output: html_notebook
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Introduction
+
+Markdown to set up an unsaturated zone model and to analyze the impact of the van Genuchten parameters on Evapotranspiration,  moisture distribution and groundwater recharge.
+
+
+### Cleaning the memory and loading required package(s) 
+```{r}
+rm(list = ls())
+library(FVFE1D)
+library(MIPLOT)
+```
+
+
+### Loading the soil data (Staring Series)
+
+```{r}
+load(file='Staring.Rdata')
+print(paste("Soil type: ",names(soil.set)," ",lapply(soil.set, function(x) x$name)))
+
+print(paste("Ksat values: ",lapply(soil.set, function(y) y$name),"  ",lapply(soil.set, function(x) x$ksat)))
+```
+
+
+
+# Model setup
+
+## Internal flux in the unsaturated zone  
+
+The equation describing the internal flux in the unsaturated zone strongly resembles the basic Darcy equation to simulate flow in the saturated zone. Most important differences are the hydraulic conductivity and the state.
+Now the state is $\psi$ instead of $H$. Both are related: $H = \psi + z$ where the $z$ is the datum/reference (in the Netherlands: "NAP").
+
+$$
+q=-k(\psi)\left [\frac{\partial \psi}{\partial z} + 1 \right]
+$$
+
+## Building the model for the Holterbeg
+
+**Be aware** the length unit is in cm!
+
+The model is based on:  
+
+*  1D vertical flow 
+*  Richards/Darcy's equation  
+*  Top boundary flux based precipitation
+*  Bottom boundary flux based on Dirichlet or Cauchy type
+*  Spatial flux for the rooting function for transpiration
+*  Soil evaporation is neglected
+
+## Choose a soil type from the Staring series
+
+From the Staring Series you can choose a typical soil type for ice pushed ridges.
+For example the soil type "Coarse sand" B5. 
+
+
+```{r}
+
+soiltype = soil.set$B5
+
+print(unlist(soiltype))
+
+## domain of the model
+top = 0.0  # at the surface
+bottom = -1000#-200 # so 200 cm below surface!!
+
+log_top = 0.1
+log_bottom = log10(-bottom)
+log_z = seq(from = log_top, to = log_bottom,by = 0.01)
+nodes = -10^log_z
+
+
+domain=c(bottom,top)
+
+
+###description of the internal flux##############
+unsatdarcy.flux = function(z,psi,dpsidz)
+{
+  return(-soiltype$k.fun(psi)*(dpsidz+1))
+}
+
+################### make the model #################
+UnsatStat = newFLOW1D(domain,unsatdarcy.flux,"Unsaturated zone, 1D stationary")
+
+####### discretisation #####################
+# position the nodes 2 cm apart
+#nodes = seq(from=domain[1],to=domain[2],by=1)
+set.discretisation(UnsatStat,nodes,"FV") #setting to FEquartic slows transient simulations way too much
+# An initialisation is certainly important (as the default initialisation by zeros does not make sense here). 
+# So we initialize with a no-flux profile:
+Psi.equi = approxfun(c(domain[1],domain[2]),c(domain[2],domain[1]))
+do.initialize(UnsatStat,Psi.equi)
+
+# We want to avoid pressures to be too negative (<-1E-5)
+Psi.in.range = function(z,Psi) # it has 2 arguments; the position and the state. Set the min. value to pF4.2 not pF5
+{
+  if(Psi<=-1*10^4.2) return(FALSE)
+   #if(Psi<=-1*10^5) return(FALSE)
+  else return(TRUE)
+}
+set.isacceptable(UnsatStat,Psi.in.range) #the set.isacceptable function limits the possible values that the state can become
+
+############## Boundary conditions ##################
+set.BC.fixedstate(UnsatStat,"left",0.0)
+# At the bottom of the model, where the groundwater level is located, both pressure head and elevation head are zero. 
+
+ppt = 0.1
+set.BC.fixedflux(UnsatStat,"right","ppt")  
+# 0.1cm/d=1mm/d. Although this flow is directed downwards, we define it positive because it goes into the domain.
+
+
+######## checking and solving the model ####################
+summary(UnsatStat)
+solve.steps(UnsatStat,verboselevel=1)
+plot(UnsatStat,fluxplot = T,vertical = T)
+
+```
+
+## Additional flow functions
+
+In addition there will be functions for ponding, the lower boundary conditions (simulating the drainage effect) and transpiration of roots (Feddes function).
+The lower boundary condition is a Cauchy type BC:
+$$
+Q_{drainge}= \frac{H_{drn.level} - H_{bottom}}{C}
+$$
+
+```{r}
+drn.resistance = 1000 #unit is in days
+drn.level = -1000 # so 80 cm below surface level
+drn.fun = function(psi)
+{
+#  if((drn.level - (psi + bottom)) < 0) return((drn.level - (psi + bottom))/drn.resistance)
+#  else return(0)
+  return((drn.level - (psi + bottom))/drn.resistance)
+}
+
+
+```
+
+### Replacing the bottom fixed head boundary condition with the drainage type
+
+```{r}
+set.BC.fluxstate(UnsatStat,"left", drn.fun)
+summary(UnsatStat)
+
+drn.psi.equi = approxfun(c(domain[1],domain[2]),c((drn.level - bottom),drn.level))
+                         
+do.initialize(UnsatStat,drn.psi.equi)
+solve.steps(UnsatStat,verboselevel = 1)
+plot(UnsatStat,fluxplot = T,vertical = T)
+
+##trying the new bottom boundary condition with a view different ppt's
+ppt = 0.2
+solve.steps(UnsatStat,verboselevel = 1)
+plot(UnsatStat,fluxplot = T,vertical = T)
+
+#ppt = -0.2
+# solve.steps(UnsatStat,verboselevel = 1)
+# plot(UnsatStat,fluxplot = T,vertical = T)
+# dataframe.balance(UnsatStat)
+# dataframe.boundaries(UnsatStat)
+
+###plotting functions showing the water table in the profile,
+### the moisture distribution and transpiration through the roots
+
+plot.wtable = function(model)
+{
+  df = dataframe.states(model)
+  plot(df$state, df$x, type = "o",col = "blue",lwd=2.5,
+       main = "Psi(z), location water table", xlab = "psi in cm", ylab = "depth profile")
+  abline(h = drn.level, col = "brown", lwd= 3, lty = "dashed")
+  text(20,drn.level, "drainage level", col = "brown")
+  psi.fun = approxfun(df$state,df$x)
+  abline(h = psi.fun(0),col = "red", lwd = 2)
+  text(20,psi.fun(0),"water table" , col = "red")
+  grid()
+}
+
+plot.theta = function(model)
+{
+  df = dataframe.states(model)
+  theta.psi = soiltype$theta.fun(df$state)
+  plot(theta.psi,df$x, type = "o", col = "green", lwd = 2.5,
+       main = "Theta(z), moisture content in profile", xlab = "theta", ylab = "depth profile")
+  abline(h = drn.level, col = "brown", lwd= 3, lty = "dashed")
+  text((mean(theta.psi)),drn.level, "drainage level", col = "brown")
+  grid()
+}
+
+
+plot.wtable(UnsatStat)
+plot.theta(UnsatStat)
+
+```
+## Adding the vegetation to the model
+
+Evapotranspiration is an important environmental condition for processes near the soil surface, such as the development of vegetation. Evapotranspiration depends on:      
+
+*   The potential evapotranspiration rate, which is determined by weather conditions;    
+*   The rooting distribution of the vegetation;   
+*   The actual soil moisture content\pressure in the rooting zone.   
+
+The total *potential* evapotranspiration rate of the vegetation is determined by weather conditions and will be given.
+
+The rooting distribution may be described by a function `root.distr.fun(z)` which gives the fraction of roots present at each depth (giving 1 when integrated with depth). 
+The rooting depth for each vegetation type can be described in many ways. 
+Here, at this stage we will assume grass with 75% rooting in the first 20 cm
+and 25% till 110 cm below surface. (Just my guess).
+
+```{r}
+root.partition = c(0.0,-20.0,-20.01,-110.0,-110.01)
+root.rates.fractions = c(0.75/20,0.75/20,0.25/90,0.25/90,0.0)
+root.distr.fun = approxfun(root.partition,root.rates.fractions,rule = 2)
+plot(root.partition,root.distr.fun(root.partition), type = "o",
+   col = "green", lwd = 2, main = "Root distribution function",
+   ylab = "Fraction of the root distribution (-)", xlab = "Rooting depth (cm) rel. to surface level")
+grid()
+
+###check for the integral
+20*0.75/20 + 90*0.25/90
+z.root = seq(-109.5,-0.5,by = 1)
+sum(root.distr.fun(z.root))
+
+
+```
+
+
+
+The vegetation can only transpire optimally when there is sufficient moisture in the soil which is 'easily' available for the vegetation. The effect of soil moisture can be simulated with the so called Feddes (retired Prof. from WUR) function.  
+
+The code chunk below illustrates such a Feddes function. This function relates the root water uptake at a certain depth with the pressure (suction) at that depth. When the soil is too wet or too dry, plant transpiration and thus root uptake are reduced below their potential rates, and the Feddes reduction factor is smaller than 1. 
+
+```{r}
+options(scipen = 999) #avoid scientific notation (with E power) in the plot
+Feddes.psiabs = c(0.1,100,1000,16000) #typical psi values to define Feddes function. Note these are absolute psi's due to the plot. NOT in the function
+Feddes.red = c(0,1,1,0)
+Feddes.fun= approxfun(-Feddes.psiabs,Feddes.red,rule=2)
+plot(Feddes.psiabs,Feddes.fun(-Feddes.psiabs),type="l",lwd=3,xlim=rev(range(Feddes.psiabs)),log="x",ylab="Root uptake reduction",xlab="Suction (|psi|)")
+abline(v=Feddes.psiabs,col="red")
+text(1,0.9,"Too wet", col="red")
+text(300,0.7,"Optimal", col="red")
+text(5000,0.9,"Too dry",col="red")
+grid()
+```
+
+
+### Adding this spatial flux to the model
+
+The effect of the vegetation, toots extracting water from the soil for transpiration depending on the root distribution, suction ($\psi$) and the potential evapotranpsiration.
+
+Three aspects are considered:  
+
+1.  Rooting distribution `root.distr.fun`  
+2.  Feddes function `Feddes.fun`  
+3.  Potential evapotranspiration `Epot`
+
+The function to calculate this is : `Eact = root.distr.fun(z)*Feddes.fun(psi)*Epot`
+
+```{r}
+
+Eact = function(z,psi)
+{
+  return(-root.distr.fun(z) * Feddes.fun(psi) * Epot)
+}
+
+add.spatialflux(UnsatStat, rate = Eact, name = "Transpiration")
+
+```
+
+
+## current model
+The current model consists of:  
+
+*  precipitation applied to the upper boundary as a prescribed flux `ppt`  
+*  potential evapotranspiration `epot`  as a flux rate to determine Eact  
+*  actual evapotranspiration `Eact` as a spatial flux (along the roots)  
+*  Cauchy type boundary condition at the lower boundary simulating the effect of a local drainage system  
+
+
+```{r}
+
+plot.roots = function(model)
+{
+  df = dataframe.externalfluxes(model)
+  plot(df$`S{Transpiration}dx`,df$x, type = "o", col = "green", lwd = 2.5,
+       main = "Moisture extraction by roots in depth", xlab = "rate (cm/d)", ylab = "depth profile")
+  abline(h = drn.level, col = "brown", lwd = 3, lty = "dashed")
+  text(mean(df$`S{Transpiration}dx`),drn.level,"drainage level", col = "brown")
+  grid()
+}
+
+summary(UnsatStat)
+
+####testing the model with meteo data
+ppt = 0.124
+Epot = 0.05#0.2
+do.initialize(UnsatStat, drn.psi.equi)
+solve.steps(UnsatStat,verboselevel = 1)
+
+plot(UnsatStat,fluxplot = T)
+plot.wtable(UnsatStat)
+plot.theta(UnsatStat)
+plot.roots(UnsatStat)
+bal.asfixedflux = dataframe.balance(UnsatStat)
+exter.asfixedflux = dataframe.externalfluxes(UnsatStat)
+```
+
+## In case of poding
+
+When the amount of precipitation is larger than the soil can absorb, ponding (nl: plasvorming) will take place 
+To simulate this, an additional Cauchy type boundary condition will be applied to the upper node.
+
+$$
+ q_{ponding} = \frac{\psi_{surface}-0}{C_{top}}
+$$
+It will only be activated when the pressure at the surface (upper node) is larger than 0.0 cm
+
+```{r}
+c.top = 5 #days
+ponding = function(psi)
+{
+  if (psi > 0)
+  {
+    return(-psi/c.top)  
+  }else{
+    return(0)
+  }
+}
+```
+
+## Adjusting the model 
+We need to replace the `set.BC.fixedflux` upper boundary to an `add.pointflux` function and apply the ponding function to the upper node with `set.BC.fluxstate`.
+
+```{r}
+set.BC.fluxstate(model = UnsatStat, where = "right", func = ponding)
+add.pointflux(model = UnsatStat, at = 0, value = "ppt", "precipitation")
+summary(UnsatStat)
+solve.steps(UnsatStat, verboselevel = 1)
+plot.wtable(UnsatStat)
+plot.theta(UnsatStat)
+```
+
+
+
+
+
+## The transient model
+
+When the dynamics are introduced into the model times series of different aspects could be analyzed.
+Introducing dynamics means actually that changes in time are considered. This impacts in the first place the amount of water stored in the model: $\frac{\partial \theta}{\partial t}$.
+
+The basic equation to be solved (Richard's equation) is:
+$$
+\frac{\partial \theta(\psi)}{\partial t} = -k(\psi)\left [\frac{\partial \psi}{\partial z} + 1 \right]
+$$
+
+The moisture (storage) change over time (: $\frac{\partial \theta(\psi)}{\partial t}$) is implemented as a `spatial flux` of time and space
+Since we are calculating $\psi$ as the state of the model, we are going to use the `soiltype$theta.fun(psi)` function to determine the amount of moisture content based on the current pressure head ($\psi$)
+
+This can be implemented numerically as:
+
+$$
+Q_{storage} = \frac{\theta \left (\psi^{t+\Delta t}\right ) - \theta \left( \psi^t \right ) }{\Delta t}\Delta z
+$$
+The new/current pressure head is the one which is evaluated at the new time step: $\psi^{t+\Delta t}$ but since we also need to consider the previous pressure head $\psi^t$, we will save these pressure just before we start with a new time step and call this `psi.old`.  
+When more water is stored in the model, it means that less is available for flow. This means that a minus sign should be introduced. This could easily be accomplished by switching both pressure heads in the aforementioned equation.
+
+```{r}
+storage = function(z,state)
+{
+  storage = (soiltype$theta.fun(psi.old(z)) - soiltype$theta.fun(state))/delta.t
+}
+```
+
+Be aware the `storage` function will be multiplied with the nodal distance internally to come to the unit of L/T (cm/d).
+
+### Setting up the transient model
+
+A copy of the stationary model is used to quickly set up the  transient model 
+
+```{r}
+UnsatTrans = copy.model(UnsatStat)
+add.spatialflux(UnsatTrans, rate = storage, name = "Storage")
+do.initialize(UnsatTrans, init = drn.psi.equi)
+psi.old = state.fun(UnsatTrans) #setting the strating state of the transient simulation to determine the first storage change
+```
+
+Creating a time loop for the calculations
+
+A function to write the required out put in different data.frames for analysis and inspection later on.
+
+```{r}
+save.data = function(model = modelname)
+{
+  df.state = dataframe.states(model)
+  state.tmp <<- rbind(state.tmp,df.state$state) #adding the states (psi) to this data.frame
+  df.extern = dataframe.externalfluxes(model)
+  transp.tmp <<- rbind(transp.tmp,df.extern$`S{Transpiration}dx`) #for transpiration(roots) data
+  moist.tmp <<- rbind(moist.tmp,df.extern$`S{Storage}dx`)
+  #balance terms transp:[2,3],flow2sto:[3,2],sto2flow[3,3]
+  df.balance = dataframe.balance(model)
+  #the drainage/upward seepage at the bottom will be written in balance.dat
+  df.bound = dataframe.boundaries(model)
+  balance.tmp <<- rbind(balance.tmp,c(precip[current.time],evapot[current.time],
+                                      df.balance[2,3],df.balance[3,2],
+                                      df.balance[3,3],df.bound[1,4],df.bound[2,4]))
+}
+```
+
+
+Reading some meteo data from KNMI, precipitation and potential evapotranspiration
+In the file it reads:
+RH        = Etmaalsom van de neerslag (in 0.1 mm) (-1 voor <0.05 mm) / Daily precipitation amount (in 0.1 mm) (-1 for <0.05 mm)
+EV24      = Referentiegewasverdamping (Makkink) (in 0.1 mm) / Potential evapotranspiration (Makkink) (in 0.1 mm)
+
+
+```{r}
+meteo = read.table(file = "ppt_epot2020.txt", header = TRUE)
+names(meteo) = c("date","ppt","epot")
+#adjusting the unit to cm/day
+precip = meteo$ppt/100  
+evapot = meteo$epot/100
+#correcting for the -1 symbol and setting these values to 0
+precip[which(precip < 0)] = 0
+evapot[which(evapot < 0)] = 0
+```
+
+
+### Base run
+
+```{r}
+
+
+begin.time  = 1
+current.time = begin.time
+end.time = length(meteo$date)
+delta.t = 1 #day, i.e. the time stepping
+
+
+####containers to save intermediate results
+state.tmp = c()
+transp.tmp = c()
+moist.tmp = c()
+balance.tmp = c()
+
+##set the initial state to equilibrium
+do.initialize(UnsatTrans, init = drn.psi.equi)
+start.run.time = Sys.time()
+while(current.time <= end.time)
+{
+  ppt = precip[as.integer(current.time)]
+  Epot = evapot[as.integer(current.time)]
+  psi.old = state.fun(UnsatTrans)
+  solve.steps(UnsatTrans)#,verboselevel = 1)
+  plot.wtable(UnsatTrans)
+  cat(paste("day nr.:",current.time, "\n"))
+  save.data(UnsatTrans)
+  current.time = current.time + delta.t 
+  ####plotting some stuff
+  # old.par = par(no.readonly=TRUE) #to save current plot settings and stuff
+  # layout = matrix(c(2,2),ncol = 2)#, byrow = TRUE)
+  # plot.roots(UnsatTrans)
+  # plot.theta(UnsatTrans)
+  # plot.wtable(UnsatTrans)
+  # par = old.par
+  #####saving the results
+}
+end.run.time = Sys.time()
+
+cat(paste("simulation time is :",end.run.time - start.run.time))
+## to make dataframes and csv's from the saved data
+balance.res = data.frame(balance.tmp)
+time.series = seq(begin.time,end.time,by = delta.t) #add this to the balanc.res data.frame for use with IJPlot
+balance.res = cbind(time.series,balance.res)
+names(balance.res) = c("Daynr","Precip","Epot","Eact","Sto2flow","Flow2sto","Recharge","Ponding")
+write.csv(x = balance.res, file = "Balance.csv")
+state.res = data.frame(state.tmp)
+names(state.res) = as.character(nodes)
+write.csv(x = state.res, file = "States.csv")
+transp.res = data.frame(transp.tmp)
+names(transp.res) = as.character(nodes)
+write.csv(x = transp.res, file = "Transp.csv")
+moist.res = data.frame(moist.tmp)
+names(moist.res) = as.character(nodes)
+write.csv(x = moist.res, file = "Moisture.csv")
+
+
+## creating the base output data.frames
+balance.base = balance.res
+state.base = state.res
+transp.base = transp.res
+moist.base = moist.res
+
+```
+
+#### LSA on transient simulations
+
+Calculate the LSA by:
+
+$$
+ VAR(O_i)= \sum \left [ \frac{1}{\epsilon_{P_j}} \left( 1/T\sum^T_{t=1} \left( O_i(t)^{P_j}-O_i(t)^{P_j+\epsilon_{P_j}}\right ) \right ) \sigma P_j \right ]^2
+$$
+So $O_i$ is for example the recharge and $P_j$ is $\alpha$.
+The term between the large parenthesis (curved brackets) is in this case simply the time average of $O_i(t)^{P_j}-O_i(t)^{P_j+\epsilon_{P_j}}$ in this example the recharge and this can be easily calculated by calculating the mean difference between `balance.base$recharge - balance.res$recharge`
+
+
+We will take a relative fraction (1%) of the parameter value being the $\epsilon$.
+Sometimes the $\lambda$ value seems to have a value of 0.000 or even -0.000. In this case a fixed of for example $\epsilon_\lambda = 0.001$ could be used.
+
+```{r}
+##LSA on kSat parameter
+ksat.eps = 0.01 * base.Ksat #calculate the epsilon
+#generate new curves based on Ksat + ksat.eps
+generate.vG.curves("B01",base.n,base.alpha,base.thetasat,base.thetares,base.Ksat+ksat.eps, base.lambda)
+##
+##Run the transient model with these parameters
+## this chunck is the same as before
+begin.time  = 1
+current.time = begin.time
+end.time = length(meteo$date)
+delta.t = 1 #day, i.e. the time stepping
+
+####containers to save intermediate results
+state.tmp = c()
+transp.tmp = c()
+moist.tmp = c()
+balance.tmp = c()
+
+#set the initial state (psi) distribution
+do.initialize(UnsatTrans, init = drn.psi.equi)
+
+while(current.time <= end.time)
+{
+  ppt = precip[as.integer(current.time)]
+  Epot = evapot[as.integer(current.time)]
+  psi.old = state.fun(UnsatTrans)
+  solve.steps(UnsatTrans)#,verboselevel = 1)
+  cat(paste("day nr.:",current.time, "\n"))
+  save.data(UnsatTrans)
+  current.time = current.time + delta.t 
+}
+
+## to make dataframes and csv's from the saved data
+balance.res = data.frame(balance.tmp)
+time.series = seq(begin.time,end.time,by = delta.t) #add this to the balanc.res data.frame for use with IJPlot
+balance.res = cbind(time.series,balance.res)
+names(balance.res) = c("Daynr","Precip","Epot","Eact","Sto2flow","Flow2sto","Recharge","Ponding")
+write.csv(x = balance.res, file = "Balance.csv")
+state.res = data.frame(state.tmp)
+names(state.res) = as.character(nodes)
+write.csv(x = state.res, file = "States.csv")
+transp.res = data.frame(transp.tmp)
+names(transp.res) = as.character(nodes)
+write.csv(x = transp.res, file = "Transp.csv")
+moist.res = data.frame(moist.tmp)
+names(moist.res) = as.character(nodes)
+write.csv(x = moist.res, file = "Moisture.csv")
+
+
+##calculating the sensitivities for the time series
+dRecharge.dKsat.mean = mean(balance.base$Recharge - balance.res$Recharge)/ksat.eps
+dRecharge.dKsat.absmean = mean(abs(balance.base$Recharge - balance.res$Recharge))/ksat.eps
+dRecharge.dKsat.sumvar = sum((balance.base$Recharge - balance.res$Recharge)^2)/ksat.eps
+dRecharge.dKsat.VAR = 1/length(balance.base$Recharge) * sum((balance.base$Recharge - balance.res$Recharge)^2)/ksat.eps ##sensitivity expressed as variance/eps
+
+dTransp.dKsat.mean = mean(balance.base$Eact - balance.res$Eact)/ksat.eps
+dTransp.dKsat.absmean = mean(abs(balance.base$Eact - balance.res$Eact))/ksat.eps
+dTransp.dKsat.sumvar = sum((balance.base$Eact - balance.res$Eact)^2)/ksat.eps  ## sensitivity expressed as total variance sum((delta_Output)^2)/eps
+dTransp.dKsat.VAR = 1/length(balance.base$Recharge) * sum((balance.base$Eact - balance.res$Eact)^2)/ksat.eps
+
+###calculating the water table from the state.res
+wtable.fun = function(x)
+{
+  psi.fun = approxfun(x,nodes)
+  return(psi.fun(0))
+}
+wtable.base = apply(X=state.base, MARGIN = 1, FUN = function(x){wtable.fun(x)})
+wtable.res = apply(X=state.res,MARGIN = 1, FUN = function(x){wtable.fun(x)})
+
+dwtable.dKsat.mean = mean((wtable.base - wtable.res),na.rm = TRUE)/ksat.eps
+dwtable.dKsat.absmean = mean(abs(wtable.base - wtable.res),na.rm = TRUE)/ksat.eps
+dwtable.dKsat.sumvar = sum((wtable.base - wtable.res)^2, na.rm = TRUE)/ksat.eps
+dwtable.dKsat.VAR = 1/length(balance.base$Recharge) * sum((wtable.base - wtable.res)^2, na.rm = TRUE)/ksat.eps
+
+###reset the van Genuchten parameters
+generate.vG.curves("B01",base.n,base.alpha,base.thetasat,base.thetares,base.Ksat, base.lambda)
+
+```
+
+
+### Viewing the results
+
+First a base plot function to have a look at the water balance terms in time
+Next we use IJPLOT package from Paul Torfs (old colleague of mine) to look at the moisture, pressure and root uptake distribution in the model in time. These are thus time series
+
+
+
+```{r}
+plot.trans.balance = function() # this is a very basic simple and generic R plot
+{
+  time.series = c(1:length(balance.res[,1]))
+  flux.range = range(balance.res[,2:8])
+  plot(x = time.series , y = balance.res$Eact, ylim = flux.range, xlab = "time (d)",
+       ylab = "flux rate cm/d", main = "Water balance terms", type = "l",
+       lwd = 2, col = "red")
+  lines(x = time.series, y = balance.res$Sto2flow, lwd = 2,col = "lightblue")
+  lines(x = time.series, y = balance.res$Flow2sto, lwd = 2, col = "lightgreen")
+  lines(x = time.series, y = balance.res$Recharge, lwd = 2, col = "magenta")
+  lines(x = time.series, y = balance.res$Precip, lwd = 2, col = 'blue')
+  lines(x = time.series, y = balance.res$Ponding, lwd = 2, col = 'orange')
+  lines(x = time.series, y = balance.res$Epot, lwd = 2, col = 'tomato3')
+  grid()
+}
+plot.trans.balance() # this a very basic simple and generic R plot
+
+#below the IJPLOT package is used to plot different type of data
+
+balance.plot = new_miplot(name = "balance",fxright = 0.90, rightmargin = 0.0)
+color.set = rainbow(n = length(balance.res[1,]))
+add_line(balance.plot, data = balance.res,dataxname = names(balance.res[1]), datayname = names(balance.res[2]), color = color.set[2],width = 2)
+add_line(balance.plot, data = balance.res,dataxname = names(balance.res[1]), datayname = names(balance.res[3]), color = color.set[3],width = 2)
+add_line(balance.plot, data = balance.res,dataxname = names(balance.res[1]),datayname = names(balance.res[4]), color = color.set[4],width = 2)
+add_line(balance.plot, data = balance.res,dataxname = names(balance.res[1]),datayname = names(balance.res[5]), color = color.set[5],width = 2)
+add_line(balance.plot, data = balance.res,dataxname = names(balance.res[1]),datayname = names(balance.res[6]), color = color.set[6],width = 2)
+add_line(balance.plot, data = balance.res,dataxname = names(balance.res[1]),datayname = names(balance.res[7]), color = color.set[7],width = 2)
+add_line(balance.plot, data = balance.res,dataxname = names(balance.res[1]),datayname = names(balance.res[8]), color = color.set[8],width = 2)
+add_xlabel(balance.plot, text = "time steps (d)", fontsize = 12)
+add_ylabel(balance.plot, text = "flux rate (cm/d)", fontsize = 12, offset = 25)
+add_title(balance.plot, text = "Water balance terms")
+add_vline(balance.plot, x = seq(min(balance.res[,1]),max(balance.res[,1]),length.out = 5), dash=c(2,2), color = "grey")
+add_hline(balance.plot, y = seq(min(balance.res[,2:8]),max(balance.res[,2:8]),length.out = 5),dash=c(2,2), color = "grey")
+
+legend.plot = new_miplot(name = "legend",yfixed = TRUE, xfixed = TRUE,fxleft = 0.90,fybottom = 0.7,
+                         bottommargin = 0, leftmargin = 0, horaxisnumdiv = 0, veraxisnumdiv = 0,
+                         imposedmaxx= max(nchar(names(balance.res))))
+
+for (i in 2:length(balance.res[1,]))
+{
+  add_points(mip = legend.plot,x = 0, y = length(balance.res[1,])-i, marker = "square",size = 8, fillcolor = color.set[i])
+  add_text(mip = legend.plot, atx= 0, aty = length(balance.res[1,])-i,text = paste(names(balance.res[i])),fontsize = 12,
+           pos = "E",offset = 5)
+}
+
+###for testing
+write.table(moist.res,file = "moisture.dat")
+write.table(transp.res, file = "transp.dat")
+
+###
+draw(balance.plot,legend.plot)
+
+flux.plot = new_ijplot(name = "flux", fxright = 0.90, rightmargin = 0.0)
+nr.time.steps = length(moist.res[,1])
+add_selectnum(ijp=flux.plot,name = "time step",maxnum = nr.time.steps)
+for (i in 1:nr.time.steps)
+{
+  add_line(flux.plot,x = nodes, y = soiltype$theta.fun(state.res[i,]), selectnum = c("time step", i), color = color.set[1])
+  add_line(flux.plot,x = nodes, y = 10*transp.res[i,], selectnum = c("time step", i),color = color.set[2])
+}
+add_title(flux.plot,text = "flux rates root uptake(mm/d) moisture content(cm/cm)")
+add_xlabel(flux.plot,text = "time (d)",fontsize = 12)
+add_ylabel(flux.plot,text = "flux rate root uptake (mm/d) or fraction theta",fontsize =12)
+add_vline(flux.plot, x= seq(min(nodes),max(nodes),length.out = 5), dash = c(2,2),color = "grey")
+psi.max = max(state.res)# to determine the range for the grid
+psi.min = min(state.res)
+transp.range = range(transp.res)
+theta.range = c(soiltype$theta.fun(psi.min),soiltype$theta.fun(psi.max))
+max.y.axis = max(theta.range, transp.range)
+min.y.axis = min(theta.range, transp.range)
+add_hline(flux.plot, y = seq(min.y.axis,max.y.axis,length.out = 5), dash=c(2,2),color = "grey")
+
+flux.legend = new_ijplot(name = "flux.legend",yfixed = TRUE, xfixed = TRUE,fxleft = 0.90,fybottom = 0.8,
+                         bottommargin = 0, leftmargin = 0, rightmargin = 2, horaxisnumdiv = 0, veraxisnumdiv = 0,
+                         imposedminx = -1,imposedmaxx= nchar("root uptake"),imposedminy =-1,imposedmaxy = 3)
+add_points(flux.legend,x = 0.5, y = 0.5, marker = "tile", size = 8, fillcolor = color.set[1])
+add_points(flux.legend,x = 0.5, y = 2.5, marker = "tile", size = 8, fillcolor = color.set[2])
+add_text(flux.legend, atx = 0.5, aty = 0.5, text = "moisture",fontsize = 12, pos = "E",offset = 5)
+add_text(flux.legend, atx = 0.5, aty =2.5, text = "root uptake",fontsize = 12, pos="E",offset = 5)
+
+draw(flux.plot,flux.legend)
+
+psi.plot = new_miplot(name = "psi", fxright = 0.90, rightmargin = 0.0)
+nr.time.steps = length(moist.res[,1])
+add_selectnum(mip=psi.plot,name = "time step",maxnum = nr.time.steps)
+for (i in 1:nr.time.steps)
+{
+  add_line(psi.plot,x = nodes, y = state.res[i,], selectnum = c("time step", i), color = color.set[1])
+}
+add_vline(psi.plot,x=seq(min(nodes),max(nodes),length.out = 5),dash = c(2,2), color = 'grey')
+add_hline(psi.plot,y = seq(min(state.res),max(state.res), length.out = 5),dash = c(2,2),color = "grey")
+add_title(psi.plot, text = "pressure distribution (psi) over time")
+add_xlabel(psi.plot, text = "time (d)",fontsize = 12)
+add_ylabel(psi.plot, text = "pressure (cm)",fontsize = 12)
+
+draw(psi.plot)
+
+```
+
